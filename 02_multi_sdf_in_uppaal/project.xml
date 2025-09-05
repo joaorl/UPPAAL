@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>
+// Global variables
+const int MAX_PROC = 4;     // # of processors
+const int MAX_DAGS = 3;     // # of DAGs
+const int MAX_ACTORS = 3;   // # of actors per DAG
+
+
+// Types
+typedef int [0,MAX_PROC-1]     id_proc;
+typedef int [0,MAX_DAGS-1]     id_dags;
+typedef int [0,MAX_ACTORS-1]   id_actor;
+
+// channels: fire and end per processor, actor and dag
+chan fire [MAX_PROC][MAX_DAGS][MAX_ACTORS];
+chan end  [MAX_PROC][MAX_DAGS][MAX_ACTORS];
+
+// buffers by DAG and by edge
+int buff[MAX_DAGS][MAX_ACTORS][MAX_ACTORS] = {
+/* d=0 */ {
+        /* actor 0 */ { 0, 0, 0 },
+        /* actor 1 */ { 2, 1, 0 },
+        /* actor 2 */ { 0, 6, 0 }
+    },
+/* d=1 */ {
+        /* actor 0 */ { 0, 0, 0 },
+        /* actor 1 */ { 3, 2, 0 },
+        /* actor 2 */ { 0, 7, 0 }
+    },
+/* d=2 */ {
+        /* actor 0 */ { 0, 0, 0 },
+        /* actor 1 */ { 4, 3, 0 },
+        /* actor 2 */ { 0, 8, 0 }
+    }
+};
+
+/*
+    consumption/production by DAG and by edge
+    cons[d][a][a] = tokens consumed from the edge when the target task fires
+    prod[d][a][a] = tokens produced on the edge when the source task finishes
+ */
+int cons[MAX_DAGS][MAX_ACTORS][MAX_ACTORS] = {
+/* d=0 */ {
+      /* actor 0 */ { 0, 2, 0 },
+      /* actor 1 */ { 1, 1, 2 },
+      /* actor 2 */ { 0, 3, 0 }
+    },
+/* d=1 */ {
+      /* actor 0 */ { 0, 2, 0 },
+      /* actor 1 */ { 2, 1, 3 },
+      /* actor 2 */ { 0, 2, 0 }
+    },
+/* d=2 */ {
+      /* actor 0 */ { 0, 1, 0 },
+      /* actor 1 */ { 2, 3, 1 },
+      /* actor 2 */ { 0, 2, 0 }
+    }
+};
+
+int prod[MAX_DAGS][MAX_ACTORS][MAX_ACTORS] = {
+/* d=0 */ {
+        /* actor 0 */ { 0, 1, 0 },
+        /* actor 1 */ { 2, 1, 3 },
+        /* actor 2 */ { 0, 2, 0 }
+    },
+/* d=1 */ {
+        /* actor 0 */ { 0, 2, 0 },
+        /* actor 1 */ { 3, 2, 4 },
+        /* actor 2 */ { 0, 3, 0 }
+    },
+/* d=2 */ {
+        /* actor 0 */ { 0, 3, 0 },
+        /* actor 1 */ { 5, 4, 4 },
+        /* actor 2 */ { 0, 3, 0 }
+    }
+};
+
+
+// costs (WCET) e Deadlines per DAG and actor
+const int cost[MAX_DAGS][MAX_ACTORS] = {
+  /* d=0 */ {2, 2, 3},
+  /* d=1 */ {5, 4, 5},
+  /* d=2 */ {6, 6, 6}
+};
+
+int deadline[MAX_DAGS][MAX_ACTORS] = {
+  /* d=0 */ {6, 6, 6},
+  /* d=1 */ {6, 6, 6},
+  /* d=2 */ {6, 6, 6}
+};
+
+// clocks: one clock per dag and actor
+clock clk[MAX_DAGS][MAX_ACTORS];
+
+/*
+    processor load tracking
+    load[p] = sum of the costs of tasks currently assigned to p
+    load_limit[p]
+ */
+int load[MAX_PROC];
+const int load_limit[MAX_PROC] = {9,9,9,8};
+
+// counters by DAG and actor (debug purpose)
+int counter[MAX_DAGS][MAX_ACTORS];
+
+// to check if an actor 'a' of DAG 'd' can fire
+bool can_fire(int d, int a)
+{
+    int i;
+    // to fire, all incoming edges must have enough tokens
+    for (i = 0; i &lt; MAX_ACTORS; i++)
+    {
+        if (cons[d][a][i] &gt; 0)
+        {
+            if (buff[d][i][a] &lt; cons[d][a][i])
+            {
+                return false;
+            }
+        }      
+    }
+    return true;
+}
+// consumes tokens from incoming edges and resets the actor's clock
+void consume(int d, int a)
+{
+    int i;
+
+    for (i = 0; i &lt; MAX_ACTORS; i++)
+    {
+        if (cons[d][a][i] &gt; 0)
+        {
+            buff[d][i][a] -= cons[d][a][i];
+        }
+    }
+    // reset clock do actor disparado
+    clk[d][a] = 0;
+}
+// produces tokens on outgoing edges. Called when an execution completes.
+void produce(int d, int a)
+{
+    int i;
+
+    for (i = 0; i &lt; MAX_ACTORS; i++)
+    {
+        if (prod[d][a][i] &gt; 0)
+        {
+            buff[d][a][i] += prod[d][a][i];  
+        }
+    }
+}
+</declaration>
+	<template>
+		<name>sSDF</name>
+		<parameter>const int p, const int d, const int a</parameter>
+		<location id="id0" x="-263" y="-85">
+			<name x="-288" y="-127">idle</name>
+		</location>
+		<init ref="id0"/>
+		<transition id="id1">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="-93" y="-204">e:id_proc</label>
+			<label kind="synchronisation" x="-93" y="-170">end[e][d][a]?</label>
+			<label kind="assignment" x="-93" y="-153">produce(d,a),
+counter[d][a]++</label>
+			<nail x="76" y="-85"/>
+			<nail x="76" y="153"/>
+		</transition>
+		<transition id="id2">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="-603" y="-204">e:id_proc</label>
+			<label kind="guard" x="-603" y="-170">can_fire(d,a)</label>
+			<label kind="synchronisation" x="-603" y="-153">fire[e][d][a]!</label>
+			<label kind="assignment" x="-603" y="-136">consume(d, a)</label>
+			<nail x="-603" y="153"/>
+			<nail x="-603" y="-85"/>
+		</transition>
+	</template>
+	<template>
+		<name>sProcessor</name>
+		<parameter>const int p, const int d, const int a</parameter>
+		<declaration>
+
+clock ticks; /* local execution clock */
+
+/* the clock ticks is used to track the task's deadlines */</declaration>
+		<location id="id3" x="-569" y="0">
+			<name x="-579" y="-34">idle</name>
+		</location>
+		<location id="id4" x="-263" y="0">
+			<name x="-273" y="-34">run</name>
+			<label kind="invariant" x="-273" y="17">ticks&lt;=deadline[d][a]</label>
+		</location>
+		<init ref="id3"/>
+		<transition id="id5">
+			<source ref="id4"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-501" y="-136">ticks == deadline[d][a]</label>
+			<label kind="synchronisation" x="-484" y="-161">end[p][d][a]!</label>
+			<label kind="assignment" x="-501" y="-119">load[p] -= cost[d][a]</label>
+			<nail x="-348" y="-93"/>
+			<nail x="-493" y="-93"/>
+		</transition>
+		<transition id="id6">
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-552" y="144">load[p] + cost[d][a] &lt;= load_limit[p]</label>
+			<label kind="synchronisation" x="-467" y="161">fire[p][d][a]?</label>
+			<label kind="assignment" x="-535" y="187">ticks := 0, load[p] += cost[d][a]</label>
+			<nail x="-501" y="110"/>
+			<nail x="-331" y="110"/>
+		</transition>
+	</template>
+	<system>// SDF Graph template (p, d, a)
+// DAG d0 alocado em p0
+D0P0A0 = sSDF(0, 0, 0);
+D0P0A1 = sSDF(0, 0, 1);
+D0P0A2 = sSDF(0, 0, 2);
+// DAG d0 alocado em p1
+D0P1A0 = sSDF(1, 0, 0);
+D0P1A1 = sSDF(1, 0, 1);
+D0P1A2 = sSDF(1, 0, 2);
+// DAG d0 alocado em p2
+D0P2A0 = sSDF(2, 0, 0);
+D0P2A1 = sSDF(2, 0, 1);
+D0P2A2 = sSDF(2, 0, 2);
+// DAG d0 alocado em p3
+D0P3A0 = sSDF(3, 0, 0);
+D0P3A1 = sSDF(3, 0, 1);
+D0P3A2 = sSDF(3, 0, 2);
+
+// DAG d1 alocado em p0
+D1P0A0 = sSDF(0, 1, 0);
+D1P0A1 = sSDF(0, 1, 1);
+D1P0A2 = sSDF(0, 1, 2);
+// DAG d1 alocado em p1
+D1P1A0 = sSDF(1, 1, 0);
+D1P1A1 = sSDF(1, 1, 1);
+D1P1A2 = sSDF(1, 1, 2);
+// DAG d1 alocado em p2
+D1P2A0 = sSDF(2, 1, 0);
+D1P2A1 = sSDF(2, 1, 1);
+D1P2A2 = sSDF(2, 1, 2);
+// DAG d1 alocado em p3
+D1P3A0 = sSDF(3, 1, 0);
+D1P3A1 = sSDF(3, 1, 1);
+D1P3A2 = sSDF(3, 1, 2);
+
+// DAG d2 alocado em p0
+D2P0A0 = sSDF(0, 2, 0);
+D2P0A1 = sSDF(0, 2, 1);
+D2P0A2 = sSDF(0, 2, 2);
+// DAG d2 alocado em p1
+D2P1A0 = sSDF(1, 2, 0);
+D2P1A1 = sSDF(1, 2, 1);
+D2P1A2 = sSDF(1, 2, 2);
+// DAG d2 alocado em p2
+D2P2A0 = sSDF(2, 2, 0);
+D2P2A1 = sSDF(2, 2, 1);
+D2P2A2 = sSDF(2, 2, 2);
+// DAG d2 alocado em p3
+D2P3A0 = sSDF(3, 2, 0);
+D2P3A1 = sSDF(3, 2, 1);
+D2P3A2 = sSDF(3, 2, 2);
+
+// Processors templates (p, d, a)
+// DAG d0 alocado em p0
+P0D0A0 = sProcessor(0, 0, 0);
+P0D0A1 = sProcessor(0, 0, 1);
+P0D0A2 = sProcessor(0, 0, 2);
+// DAG d0 alocado em p1
+P1D0A0 = sProcessor(1, 0, 0);
+P1D0A1 = sProcessor(1, 0, 1);
+P1D0A2 = sProcessor(1, 0, 2);
+// DAG d0 alocado em p2
+P2D0A0 = sProcessor(2, 0, 0);
+P2D0A1 = sProcessor(2, 0, 1);
+P2D0A2 = sProcessor(2, 0, 2);
+// DAG d0 alocado em p2
+P3D0A0 = sProcessor(3, 0, 0);
+P3D0A1 = sProcessor(3, 0, 1);
+P3D0A2 = sProcessor(3, 0, 2);
+
+// DAG d1 alocado em p0
+P0D1A0 = sProcessor(0, 1, 0);
+P0D1A1 = sProcessor(0, 1, 1);
+P0D1A2 = sProcessor(0, 1, 2);
+// DAG d1 alocado em p1
+P1D1A0 = sProcessor(1, 1, 0);
+P1D1A1 = sProcessor(1, 1, 1);
+P1D1A2 = sProcessor(1, 1, 2);
+// DAG d1 alocado em p2
+P2D1A0 = sProcessor(2, 1, 0);
+P2D1A1 = sProcessor(2, 1, 1);
+P2D1A2 = sProcessor(2, 1, 2);
+// DAG d1 alocado em p3
+P3D1A0 = sProcessor(3, 1, 0);
+P3D1A1 = sProcessor(3, 1, 1);
+P3D1A2 = sProcessor(3, 1, 2);
+
+// DAG d2 alocado em p0
+P0D2A0 = sProcessor(0, 2, 0);
+P0D2A1 = sProcessor(0, 2, 1);
+P0D2A2 = sProcessor(0, 2, 2);
+// DAG d2 alocado em p1
+P1D2A0 = sProcessor(1, 2, 0);
+P1D2A1 = sProcessor(1, 2, 1);
+P1D2A2 = sProcessor(1, 2, 2);
+// DAG d2 alocado em p2
+P2D2A0 = sProcessor(2, 2, 0);
+P2D2A1 = sProcessor(2, 2, 1);
+P2D2A2 = sProcessor(2, 2, 2);
+// DAG d2 alocado em p3
+P3D2A0 = sProcessor(3, 2, 0);
+P3D2A1 = sProcessor(3, 2, 1);
+P3D2A2 = sProcessor(3, 2, 2);
+
+// System composition
+system 
+        
+        D0P0A0, D0P0A1, D0P0A2,
+        D0P1A0, D0P1A1, D0P1A2,
+        D0P2A0, D0P2A1, D0P2A2,
+        D0P3A0, D0P3A1, D0P3A2,
+        
+        // D1P0A0, D1P0A1, D1P0A2,
+        /*D1P1A0, D1P1A1, D1P1A2,
+        D1P2A0, D1P2A1, D1P2A2,
+        D1P3A0, D1P3A1, D1P3A2,        
+
+        D2P0A0, D2P0A1, D2P0A2,
+        D2P1A0, D2P1A1, D2P1A2,
+        D2P2A0, D2P2A1, D2P2A2,
+        D2P3A0, D2P3A1, D2P3A2,*/
+        
+        P0D0A0, P0D0A1, P0D0A2,
+        P1D0A0, P1D0A1, P1D0A2,
+        P2D0A0, P2D0A1, P2D0A2,
+        P3D0A0, P3D0A1, P3D0A2
+
+        //P0D1A0, P0D1A1, P0D1A2
+/*,
+        P1D1A0, P1D1A1, P1D1A2,
+        P2D1A0, P2D1A1, P2D1A2,
+        P3D1A0, P3D1A1, P3D1A2,
+        
+        P0D2A0, P0D2A1, P0D2A2,
+        P1D2A0, P1D2A1, P1D2A2,
+        P2D2A0, P2D2A1, P2D2A2,
+        P3D2A0, P3D2A1, P3D2A2*/;
+
+</system>
+	<queries>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment>Checks for the existence of deadlocks</comment>
+		</query>
+		<query>
+			<formula>A[] not (du &gt; deadline_u or dv &gt; deadline_v or dw &gt; deadline_w)</formula>
+			<comment>Checks compliance with arbitrary deadlines</comment>
+		</query>
+		<query>
+			<formula>A[] forall(i:int[0,3]) load[i] &lt;= load_limit[i]</formula>
+			<comment>Checks that no processor exceeds the load limit</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; (counter_u == 12 and counter_v == 6 and counter_w == 9)</formula>
+			<comment>throughput analysis</comment>
+		</query>
+	</queries>
+</nta>
