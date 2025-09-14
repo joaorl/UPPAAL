@@ -30,5 +30,10 @@ The main improvements are:
 \- Improve scalability of the system.
 
 
+### 03- Scheduler Framework for SDF
+
+This folder extends the project UPPAAL project SchedulerFramework example to support SDF.
+
+
 
 
