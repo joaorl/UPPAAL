@@ -6,13 +6,13 @@
 */
 const bool Periodic = true;
 
-const int MaxTime = 21;
+const int MaxTime = 50;
 typedef int[0,MaxTime] time_t;
 
-const int Tasks = 2;                 // Number of tasks/actors
+const int Tasks = 3;                 // Number of tasks/actors
 typedef int[0,Tasks-1] t_id;
 
-const int Procs = 6;                 // Number of resources
+const int Procs = 3;                 // Number of resources
 typedef int[0,Procs-1] r_id;
 
 const int Dags = 3;                 // Number of resources
@@ -26,19 +26,20 @@ typedef struct {
   time_t deadline;
   time_t bcet;
   time_t wcet;
-  r_id resource[Procs];
-  int pri;  
+  r_id resources[Procs-1];
+  int pri;
+
 } task_t;
 
-const r_id res[Procs] = {0, 1 , 2, 3, 4, 5};
+const r_id res[Procs-1] = {0,1};
 
 //init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
 const task_t task[Tasks] = {
-{0,20,20,0,20,6,6,res,1},
-{0,20,20,0,20,6,6,res,1}/*,
-{0,20,20,0,20,10,10,res,1},
-{0,20,20,0,20,4,4,res,1},
-{0,20,20,0,20,5,5,res,1}*/
+{0,20,20,0,30,4,4,res,1},
+{0,20,20,0,30,3,3,res,1},
+{0,20,20,0,30,2,2,res,1}/*,
+{0,20,20,0,20,1,1,res,1},
+{0,20,20,0,20,3,3,res,1}*/
 };
 
 typedef struct {
@@ -63,56 +64,23 @@ typedef int[0,Policies-1] policy_t;
 *    - 0/false : task i does not depend on task j
 *    - 1/true  : task i depends on task j
 */
-const bool Depend[Tasks][Tasks] = {  // Task graph
-{0,0},
-{0,0}
-/*{0,0,0,0,0},
-{1,0,0,0,0},
-{0,0,0,0,0},
-{0,0,1,0,1},
-{1,0,0,0,0}*/
-};
-
 int edge_buffer[Tasks][Tasks] = {
-{4,3},
-{4,4}
-};
-// buffers by DAG and by edge
-int edge_buffer2[5][5] = {
-    /* task 0 */ { 0, 0, 0, 0, 0},
-    /* task 1 */ { 2, 0, 0, 0, 0},
-    /* task 2 */ { 0, 0, 0, 0, 0},
-                 { 0, 0, 4, 0, 4},
-                 { 6, 0, 0, 0, 0}
+    /* task 0 */ { 0, 9, 9},
+    /* task 1 */ { 0, 0, 0},
+    /* task 2 */ { 12, 0, 0}
 };
 
-/*
- *  consumption/production by DAG and by edge
- *  cons[d][a][a] = tokens consumed from the edge when the target task fires
- *  prod[d][a][a] = tokens produced on the edge when the source task finishes
- */
-const int cons[Tasks][Tasks] = {
-{2,2},
-{2,2}
-};
-const int cons2[5][5] = {
-    /* task 0 */ { 0, 0, 0, 0, 0},
-    /* task 1 */ { 3, 0, 0, 0, 0},
-    /* task 2 */ { 0, 0, 0, 0, 0},
-                 { 0, 0, 2, 0, 2},
-                 { 2, 0, 0, 0, 0}
+
+const int prod[Tasks][Tasks] = {
+    /* task 0 */ { 0, 3, 3},
+    /* task 1 */ { 0, 0, 0},
+    /* task 2 */ { 6, 0, 0}
 };
 
-const int prod[Tasks][Tasks]= {
-{4,4},
-{8,4}
-};
-const int prod2[5][5]= {
-    /* task 0 */ { 0, 0, 0, 0, 0},
-    /* task 1 */ { 4, 0, 0, 0, 0},
-    /* task 2 */ { 0, 0, 0, 0, 0},
-                 { 0, 0, 3, 0, 3},
-                 { 4, 0, 0, 0, 0}
+const int cons[Tasks][Tasks]= {
+    /* task 0 */ { 0, 2, 2},
+    /* task 1 */ { 0, 0, 0},
+    /* task 2 */ { 3, 0, 0}
 };
 
 /*
@@ -120,8 +88,10 @@ const int prod2[5][5]= {
 */
 clock time[Tasks];//, exec[Tasks];
 bool complete[Tasks];
+bool fired[Tasks]; 
 
 bool error[Tasks];
+int counter[Tasks];
 
 urgent chan ready[Procs];
 chan finished[Tasks];//run[Procs+1], stop[Procs], done[Procs];
@@ -148,7 +118,6 @@ void insert_at(int[0,Tasks] pos, t_id tid, r_id rid) {
 
 }
 
-
 // to check if an actor 'a' of DAG 'd' can fire
 bool can_fire(d_id did, t_id tid)
 {
@@ -156,15 +125,15 @@ bool can_fire(d_id did, t_id tid)
     // to fire, all incoming edges must have enough tokens
     for (i = 0; i &lt; Tasks; i++)
     {
-        if (cons[tid][i] &gt; 0)
+        if (cons[i][tid] &gt; 0)
         {
-            if (edge_buffer[i][tid] &lt; cons[tid][i])
+            if (edge_buffer[i][tid] &gt;= cons[i][tid])
             {
-                return false;
-            }
+                return true;
+            }            
         }      
     }
-    return true;
+    return false;
 }
 // consumes tokens from incoming edges and resets the actor's clock
 void consume(d_id did, t_id tid)
@@ -173,9 +142,9 @@ void consume(d_id did, t_id tid)
 
     for (i = 0; i &lt; Tasks; i++)
     {
-        if (cons[tid][i] &gt; 0)
+        if (cons[i][tid] &gt; 0)
         {
-            edge_buffer[i][tid] -= cons[tid][i];
+            edge_buffer[i][tid] -= cons[i][tid];
         }
     }
     // reset clock do actor disparado
@@ -291,21 +260,23 @@ bool empty() {
 		<parameter>const t_id id</parameter>
 		<declaration>clock x;
 
-bool dependencies_met() {
+int resource_pointer;
+
+bool dependencies_met() { // deprected - replaced by can_fire(0, id);
   // return forall (j : t_id)  Depend[id][j] imply complete[j];
-  return can_fire(0, id);
+    return can_fire(0, id);// || first[id] == false;
 }
 
-void completed() {
+void completed() { //deprected
   complete[id] = true;
 }
 
-void new_period() {
+void new_period() { //deprected
 //  int i = 0;
 //  for ( i  = 0; i &lt; Tasks; i++) {
 //    complete[i] = false;
 //  }
-  complete[id] = false;
+  complete[id] = true;
 }
 
 time_t initialOffset() { return task[id].initial_offset; }
@@ -315,13 +286,35 @@ time_t offset() { return task[id].offset; }
 time_t deadline() { return task[id].deadline; }
 time_t BCET() { return task[id].bcet; }
 time_t WCET() { return task[id].wcet; }
-r_id resource() {
-    return task[id].resource[0];
-}
 time_t priotiry() { return task[id].pri; }
 
+r_id resource() {
+    r_id best_r = task[id].resources[0];
+    int best_len = buffer[best_r].length;
+    int i = 0;
+
+    for (i = 0; i &lt; Procs-1; i++) {
+        r_id r = task[id].resources[i];
+        if (buffer[r].length &lt; best_len) {
+            best_len = buffer[r].length;
+            best_r = r;
+        }
+    }
+    return best_r;
+}
+
 int[0,1] isRunning() {
-  return (buffer[resource()].element[0] == id? 1 : 0);
+  // return (buffer[resource()].element[0] == id? 1 : 0);
+  int i;
+  for (i = 0; i &lt; Procs-1; i++)
+  {
+    r_id r = task[id].resources[i];
+    if (buffer[r].length &gt; 0 &amp;&amp; buffer[r].element[0] == id)
+    {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 
@@ -337,13 +330,14 @@ int[0,1] isRunning() {
 		<location id="id15" x="280" y="226">
 			<committed/>
 		</location>
-		<location id="id16" x="-250" y="-295">
+		<location id="id16" x="-246" y="-297">
 			<committed/>
 		</location>
-		<location id="id17" x="-248" y="-480">
-			<name x="-256" y="-512">Initial</name>
-			<label kind="invariant" x="-224" y="-496">x' == 0 &amp;&amp;
+		<location id="id17" x="-246" y="-467">
+			<name x="-254" y="-499">Initial</name>
+			<label kind="invariant" x="-222" y="-483">x' == 0 &amp;&amp;
 time[id] &lt;= initialOffset()</label>
+			<label kind="comments" x="-442" y="-476">x' ==0 clock paused</label>
 		</location>
 		<location id="id18" x="-258" y="33" color="#ff0000">
 			<name x="-274" y="1">Error</name>
@@ -358,9 +352,9 @@ time[id] &lt;= maxPeriod()</label>
 			<label kind="invariant" x="344" y="18">x' == isRunning() &amp;&amp;
 x &lt;= WCET()</label>
 		</location>
-		<location id="id21" x="280" y="-294">
-			<name x="256" y="-326">WaitingOffset</name>
-			<label kind="invariant" x="304" y="-310">x' == 0 &amp;&amp;
+		<location id="id21" x="280" y="-297">
+			<name x="256" y="-329">WaitingOffset</name>
+			<label kind="invariant" x="304" y="-313">x' == 0 &amp;&amp;
 time[id] &lt;= offset()</label>
 		</location>
 		<init ref="id17"/>
@@ -382,8 +376,7 @@ time[id] &lt;= offset()</label>
 		<transition id="id25">
 			<source ref="id17"/>
 			<target ref="id16"/>
-			<label kind="guard" x="-238" y="-391">time[id] == initialOffset() &amp;&amp;
-can_fire(0,id)</label>
+			<label kind="guard" x="-238" y="-391">time[id] == initialOffset()</label>
 		</transition>
 		<transition id="id26">
 			<source ref="id16"/>
@@ -410,7 +403,8 @@ new_period()</label>
 			<label kind="guard" x="288" y="92">x &gt;= BCET()</label>
 			<label kind="synchronisation" x="288" y="116">finished[id]!</label>
 			<label kind="assignment" x="289" y="136">completed(),
-produce(0, id)</label>
+produce(0, id),
+counter[id]++</label>
 		</transition>
 		<transition id="id30">
 			<source ref="id13"/>
@@ -418,7 +412,8 @@ produce(0, id)</label>
 			<label kind="guard" x="289" y="-136">dependencies_met()</label>
 			<label kind="synchronisation" x="289" y="-92">ready[resource()]!</label>
 			<label kind="assignment" x="289" y="-68">ready_task = id,
-consume(0, id)</label>
+consume(0, id),
+fired[id] = true</label>
 		</transition>
 	</template>
 	<template>
@@ -548,7 +543,7 @@ P4  = Resource(4, false,FPS);
 P5  = Resource(5, false,FPS);
 Bus = Resource(2, false,FIFO);
 
-system Task, P0, P1, P2, Bus, Policy_FPS, Policy_FIFO;</system>
+system Task, P0, P1, Policy_FPS, Policy_FIFO;</system>
 	<queries>
 		<query>
 			<formula>A[] forall (i : t_id) not Task(i).Error
