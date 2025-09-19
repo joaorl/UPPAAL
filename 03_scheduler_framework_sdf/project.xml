@@ -9,7 +9,7 @@ const bool Periodic = true;
 const int MaxTime = 50;
 typedef int[0,MaxTime] time_t;
 
-const int Tasks = 3;                 // Number of tasks/actors
+const int Tasks = 3+3;                 // Number of tasks/actors
 typedef int[0,Tasks-1] t_id;
 
 const int Procs = 3;                 // Number of resources
@@ -35,11 +35,12 @@ const r_id res[Procs-1] = {0,1};
 
 //init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
 const task_t task[Tasks] = {
-{0,20,20,0,30,4,4,res,1},
-{0,20,20,0,30,3,3,res,1},
-{0,20,20,0,30,2,2,res,1}/*,
-{0,20,20,0,20,1,1,res,1},
-{0,20,20,0,20,3,3,res,1}*/
+{0,20,20,0,15,4,4,{0,1},1}, /* task 0 */
+{0,20,20,0,15,3,3,{0,1},1}, /* task 1 */
+{0,20,20,0,15,2,2,{0,1},1}, /* task 2 */
+{0,20,20,0,15,1,1,{2,2},1}, /* edge 0-1 */
+{0,20,20,0,15,1,1,{2,2},1}, /* edge 0-2 */
+{0,20,20,0,15,1,1,{2,2},1}  /* edge 2-0 */
 };
 
 typedef struct {
@@ -65,22 +66,34 @@ typedef int[0,Policies-1] policy_t;
 *    - 1/true  : task i depends on task j
 */
 int edge_buffer[Tasks][Tasks] = {
-    /* task 0 */ { 0, 9, 9},
-    /* task 1 */ { 0, 0, 0},
-    /* task 2 */ { 12, 0, 0}
+               /*t0,t1,t2, e1,e2,e3*/
+    /* task 0 */ { 0, 0, 0, 9, 0, 9},
+    /* task 1 */ { 0, 0, 0, 0, 0, 0},
+    /* task 2 */ { 0, 0, 0, 0, 0, 0},
+    /* edge 1 */ { 0, 0, 0, 0, 0, 0},
+    /* edge 2 */ { 12, 0, 0, 0, 0, 0},
+    /* edge 3 */ { 0, 3, 0, 0, 0, 0}
 };
 
 
 const int prod[Tasks][Tasks] = {
-    /* task 0 */ { 0, 3, 3},
-    /* task 1 */ { 0, 0, 0},
-    /* task 2 */ { 6, 0, 0}
+                /*t0,t1,t2, e1,e2,e3*/
+    /* task 0 */ { 0, 0, 0, 3, 0, 3},
+    /* task 1 */ { 0, 0, 0, 0, 0, 0},
+    /* task 2 */ { 0, 0, 0, 0, 6, 0},
+    /* edge 1 */ { 0, 0, 3, 0, 0, 0},
+    /* edge 2 */ { 3, 0, 0, 0, 0, 0},
+    /* edge 3 */ { 0, 3, 0, 0, 0, 0}
 };
 
 const int cons[Tasks][Tasks]= {
-    /* task 0 */ { 0, 2, 2},
-    /* task 1 */ { 0, 0, 0},
-    /* task 2 */ { 3, 0, 0}
+                /*t0,t1,t2, e1,e2,e3*/
+    /* task 0 */ { 0, 0, 0, 3, 0, 3},
+    /* task 1 */ { 0, 0, 0, 0, 0, 0},
+    /* task 2 */ { 0, 0, 0, 0, 3, 0},
+    /* edge 1 */ { 0, 0, 2, 0, 0, 0},
+    /* edge 2 */ { 3, 0, 0, 0, 0, 0},
+    /* edge 3 */ { 0, 2, 0, 0, 0, 0}
 };
 
 /*
@@ -276,7 +289,7 @@ void new_period() { //deprected
 //  for ( i  = 0; i &lt; Tasks; i++) {
 //    complete[i] = false;
 //  }
-  complete[id] = true;
+  complete[id] = false;
 }
 
 time_t initialOffset() { return task[id].initial_offset; }
@@ -293,7 +306,8 @@ r_id resource() {
     int best_len = buffer[best_r].length;
     int i = 0;
 
-    for (i = 0; i &lt; Procs-1; i++) {
+    for (i = 0; i &lt; Procs-1; i++)
+    {
         r_id r = task[id].resources[i];
         if (buffer[r].length &lt; best_len) {
             best_len = buffer[r].length;
@@ -543,7 +557,7 @@ P4  = Resource(4, false,FPS);
 P5  = Resource(5, false,FPS);
 Bus = Resource(2, false,FIFO);
 
-system Task, P0, P1, Policy_FPS, Policy_FIFO;</system>
+system Task, P0, P1, Bus, Policy_FPS, Policy_FIFO;</system>
 	<queries>
 		<query>
 			<formula>A[] forall (i : t_id) not Task(i).Error
