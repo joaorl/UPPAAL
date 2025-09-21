@@ -142,13 +142,14 @@ chan finished[Dags][Tasks];//run[Procs+1], stop[Procs], done[Procs];
 int load[Procs];
 
 meta struct {
+  meta d_id dag;
   meta t_id task;
   meta r_id resource;
   meta bool preempt;
 } param;
 
-void setParams(t_id t, r_id r, bool preempt) {
-  param.task = t; param.resource = r; param.preempt = preempt;
+void setParams(d_id d, t_id t, r_id r, bool preempt) {
+  param.dag = d; param.task = t; param.resource = r; param.preempt = preempt;
 }
 
 meta t_id ready_task[Dags];
@@ -249,7 +250,7 @@ bool empty() {
 			<source ref="id1"/>
 			<target ref="id3"/>
 			<label kind="guard" x="-636" y="-238">empty()</label>
-			<label kind="assignment" x="-636" y="-217">insert_at(0,ready_task,id)</label>
+			<label kind="assignment" x="-636" y="-217">insert_at(0,ready_task[0],id)</label>
 			<nail x="-310" y="-201"/>
 			<nail x="-700" y="-201"/>
 		</transition>
@@ -266,7 +267,7 @@ bool empty() {
 			<target ref="id0"/>
 			<label kind="guard" x="-594" y="-366">!empty()</label>
 			<label kind="synchronisation" x="-594" y="-349">insert_task[policy]!</label>
-			<label kind="assignment" x="-653" y="-315">setParams(ready_task,id,preemptive)</label>
+			<label kind="assignment" x="-653" y="-315">setParams(0, ready_task[0],id,preemptive)</label>
 		</transition>
 		<transition id="id8">
 			<source ref="id3"/>
@@ -302,8 +303,14 @@ bool empty() {
 	</template>
 	<template>
 		<name x="5" y="5">Task</name>
-		<parameter>const t_id id</parameter>
+		<parameter>const d_id gid, const t_id tid</parameter>
 		<declaration>clock x;
+
+/*typedef int[0, Dags*Tasks-1] g_id;
+
+g_id to_gid(d_id d, t_id t) {
+    return d * Tasks + t;
+}*/
 
 int resource_pointer;
 
@@ -313,11 +320,11 @@ bool best_resource_found;
 
 bool dependencies_met() { // deprected - replaced by can_fire(0, id);
   // return forall (j : t_id)  Depend[id][j] imply complete[j];
-    return can_fire(0, id);// || first[id] == false;
+    return can_fire(gid, tid);// || first[id] == false;
 }
 
 void completed() { //deprected
-  complete[0][id] = true;
+  complete[gid][tid] = true;
 }
 
 time_t convertToTime(double x) {
@@ -338,43 +345,43 @@ time_t convertToTime(double x) {
 
 void new_period() { //deprected
 
-  complete[0][id] = false;
+  complete[gid][tid] = false;
 
-  if (dag[0].sporadic == true)
+  if (dag[gid].sporadic == true)
   {
       int i = 0;
       // for (i = 0; i &lt; dag[0].
 // completed[]
-      new_sporadic_period = task[0][id].min_period + 1;// convertToTime(random(Sporadic_Interval) + 1);
-      task[0][id].max_period = task[0][id].min_period = new_sporadic_period;
+      new_sporadic_period = task[gid][tid].min_period + 1;// convertToTime(random(Sporadic_Interval) + 1);
+      task[gid][tid].max_period = task[gid][tid].min_period = new_sporadic_period;
   }
 }
 
-time_t initialOffset() { return task[0][id].initial_offset; }
-time_t minPeriod() { return task[0][id].min_period; }
-time_t maxPeriod() { return task[0][id].max_period; }
-time_t offset() { return task[0][id].offset; }
-time_t deadline() { return task[0][id].deadline; }
-time_t BCET() { return task[0][id].bcet; }
-time_t WCET() { return task[0][id].wcet; }
-time_t priotiry() { return task[0][id].pri; }
-r_id resource() { return task[0][id].curr_resource; }
+time_t initialOffset() { return task[gid][tid].initial_offset; }
+time_t minPeriod() { return task[gid][tid].min_period; }
+time_t maxPeriod() { return task[gid][tid].max_period; }
+time_t offset() { return task[gid][tid].offset; }
+time_t deadline() { return task[gid][tid].deadline; }
+time_t BCET() { return task[gid][tid].bcet; }
+time_t WCET() { return task[gid][tid].wcet; }
+time_t priotiry() { return task[gid][tid].pri; }
+r_id resource() { return task[gid][tid].curr_resource; }
 
 void findBestResource() {
     int best_len = Tasks + 1;
     int i;
 
     best_resource_found = false;
-    task[0][id].curr_resource = -1;
+    task[gid][tid].curr_resource = -1;
 
     for (i = 0; i &lt; Procs-1; i++) {
-        r_id r = task[0][id].resources[i];
+        r_id r = task[gid][tid].resources[i];
 
-        if (load[r] + task[0][id].wcet &lt;= load_limit[r]) {
+        if (load[r] + task[gid][tid].wcet &lt;= load_limit[r]) {
 
-            if (buffer[r].length[0] &lt; best_len) {
-                best_len = buffer[r].length[0];
-                task[0][id].curr_resource = r;
+            if (buffer[r].length[gid] &lt; best_len) {
+                best_len = buffer[r].length[gid];
+                task[gid][tid].curr_resource = r;
                 best_resource_found = true;
             }
         }
@@ -386,8 +393,8 @@ int[0,1] isRunning() {
   int i;
   for (i = 0; i &lt; Procs-1; i++)
   {
-    r_id r = task[0][id].resources[i];
-    if (buffer[r].length[0] &gt; 0 &amp;&amp; buffer[r].element[0][0] == id)
+    r_id r = task[gid][tid].resources[i];
+    if (buffer[r].length[gid] &gt; 0 &amp;&amp; buffer[r].element[gid][0] == tid)
     {
       return 1;
     }
@@ -414,7 +421,7 @@ int[0,1] isRunning() {
 		<location id="id17" x="-246" y="-467">
 			<name x="-254" y="-499">Initial</name>
 			<label kind="invariant" x="-222" y="-483">x' == 0 &amp;&amp;
-time[0][id] &lt;= initialOffset()</label>
+time[gid][tid] &lt;= initialOffset()</label>
 			<label kind="comments" x="-442" y="-476">x' ==0 clock paused</label>
 		</location>
 		<location id="id18" x="-258" y="118" color="#ff0000">
@@ -423,7 +430,7 @@ time[0][id] &lt;= initialOffset()</label>
 		<location id="id19" x="280" y="425">
 			<name x="296" y="417">PeriodDone</name>
 			<label kind="invariant" x="224" y="441">x' == 0 &amp;&amp;
-time[0][id] &lt;= maxPeriod()</label>
+time[gid][tid] &lt;= maxPeriod()</label>
 		</location>
 		<location id="id20" x="280" y="119">
 			<name x="296" y="111">Ready</name>
@@ -433,7 +440,7 @@ x &lt;= WCET()</label>
 		<location id="id21" x="280" y="-297">
 			<name x="256" y="-329">WaitingOffset</name>
 			<label kind="invariant" x="306" y="-314">x' == 0 &amp;&amp;
-time[0][id] &lt;= offset()</label>
+time[gid][tid] &lt;= offset()</label>
 		</location>
 		<location id="id22" x="280" y="-59">
 			<name x="297" y="-76">SelectResource</name>
@@ -451,14 +458,14 @@ time[0][id] &lt;= offset()</label>
 			<target ref="id20"/>
 			<label kind="guard" x="297" y="-17">best_resource_found == true</label>
 			<label kind="synchronisation" x="297" y="0">ready[resource()]!</label>
-			<label kind="assignment" x="298" y="17">ready_task = id,
-consume(0, id),
-fired[0][id] = true</label>
+			<label kind="assignment" x="298" y="17">ready_task[gid] = tid,
+consume(gid, tid),
+fired[gid][tid] = true</label>
 		</transition>
 		<transition id="id25">
 			<source ref="id21"/>
 			<target ref="id13"/>
-			<label kind="guard" x="289" y="-255">time[0][id] == offset()</label>
+			<label kind="guard" x="289" y="-255">time[gid][tid] == offset()</label>
 		</transition>
 		<transition id="id26">
 			<source ref="id15"/>
@@ -473,35 +480,35 @@ fired[0][id] = true</label>
 		<transition id="id28">
 			<source ref="id17"/>
 			<target ref="id16"/>
-			<label kind="guard" x="-238" y="-391">time[0][id] == initialOffset()</label>
+			<label kind="guard" x="-238" y="-391">time[gid][tid] == initialOffset()</label>
 		</transition>
 		<transition id="id29">
 			<source ref="id16"/>
 			<target ref="id21"/>
-			<label kind="assignment" x="-272" y="-272">time[0][id] = 0, x = 0,
+			<label kind="assignment" x="-272" y="-272">time[gid][tid] = 0, x = 0,
 new_period()</label>
 		</transition>
 		<transition id="id30">
 			<source ref="id19"/>
 			<target ref="id16"/>
-			<label kind="guard" x="-102" y="403">time[0][id] &gt;= minPeriod()</label>
+			<label kind="guard" x="-102" y="403">time[gid][tid] &gt;= minPeriod()</label>
 			<nail x="-298" y="424"/>
 			<nail x="-298" y="-295"/>
 		</transition>
 		<transition id="id31">
 			<source ref="id20"/>
 			<target ref="id18"/>
-			<label kind="guard" x="-85" y="91">time[0][id] &gt; deadline()</label>
-			<label kind="assignment" x="-68" y="127">error[0][id] := true</label>
+			<label kind="guard" x="-85" y="91">time[gid][tid] &gt; deadline()</label>
+			<label kind="assignment" x="-68" y="127">error[gid][tid] := true</label>
 		</transition>
 		<transition id="id32">
 			<source ref="id20"/>
 			<target ref="id15"/>
 			<label kind="guard" x="288" y="177">x &gt;= BCET()</label>
-			<label kind="synchronisation" x="288" y="201">finished[0][id]!</label>
+			<label kind="synchronisation" x="288" y="201">finished[gid][tid]!</label>
 			<label kind="assignment" x="289" y="221">completed(),
-produce(0, id),
-counter[0][id]++</label>
+produce(gid, tid),
+counter[gid][tid]++</label>
 		</transition>
 	</template>
 	<template>
