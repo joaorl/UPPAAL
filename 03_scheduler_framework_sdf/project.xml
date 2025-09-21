@@ -49,18 +49,20 @@ const dag_t dag[Dags] = {
 };
 
 //init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
-task_t task[Tasks] = {
-{0,20,20,0,15,4,4,res,1,0,0}, /* task 0 */
-{0,20,20,0,15,3,3,res,1,0,0}, /* task 1 */
-{0,20,20,0,15,2,2,res,1,0,0}, /* task 2 */
-{0,20,20,0,15,1,1,bus,1,1,0}, /* edge 0-1 */
-{0,20,20,0,15,1,1,bus,1,1,0}, /* edge 0-2 */
-{0,20,20,0,15,1,1,bus,1,1,0}  /* edge 2-0 */
+task_t task[Dags][Tasks] = {
+    {
+        {0,20,20,0,15,4,4,res,1,0,0}, /* task 0 */
+        {0,20,20,0,15,3,3,res,1,0,0}, /* task 1 */
+        {0,20,20,0,15,2,2,res,1,0,0}, /* task 2 */
+        {0,20,20,0,15,1,1,bus,1,1,0}, /* edge 0-1 */
+        {0,20,20,0,15,1,1,bus,1,1,0}, /* edge 0-2 */
+        {0,20,20,0,15,1,1,bus,1,1,0}  /* edge 2-0 */
+    }
 };
 
 typedef struct {
-  int[0,Tasks] length;
-  t_id element[Tasks];
+  int[0,Tasks] length[Dags];
+  t_id element[Dags][Tasks];
 } buffer_t; 
 
 buffer_t buffer[Procs];
@@ -80,7 +82,8 @@ typedef int[0,Policies-1] policy_t;
 *    - 0/false : task i does not depend on task j
 *    - 1/true  : task i depends on task j
 */
-int edge_buffer[Tasks][Tasks] = {
+int edge_buffer[Dags][Tasks][Tasks] = {
+    {
                /*t0,t1,t2, e1,e2,e3*/
     /* task 0 */ { 0, 0, 0, 9, 0, 9},
     /* task 1 */ { 0, 0, 0, 0, 0, 0},
@@ -88,10 +91,12 @@ int edge_buffer[Tasks][Tasks] = {
     /* edge 1 */ { 0, 0, 0, 0, 0, 0},
     /* edge 2 */ { 12, 0, 0, 0, 0, 0},
     /* edge 3 */ { 0, 3, 0, 0, 0, 0}
+    }
 };
 
 
-const int prod[Tasks][Tasks] = {
+const int prod[Dags][Tasks][Tasks] = {
+    {
                 /*t0,t1,t2, e1,e2,e3*/
     /* task 0 */ { 0, 0, 0, 3, 0, 3},
     /* task 1 */ { 0, 0, 0, 0, 0, 0},
@@ -99,9 +104,11 @@ const int prod[Tasks][Tasks] = {
     /* edge 1 */ { 0, 0, 3, 0, 0, 0},
     /* edge 2 */ { 3, 0, 0, 0, 0, 0},
     /* edge 3 */ { 0, 3, 0, 0, 0, 0}
+    }
 };
 
-const int cons[Tasks][Tasks]= {
+const int cons[Dags][Tasks][Tasks]= {
+    {
                 /*t0,t1,t2, e1,e2,e3*/
     /* task 0 */ { 0, 0, 0, 3, 0, 3},
     /* task 1 */ { 0, 0, 0, 0, 0, 0},
@@ -109,20 +116,22 @@ const int cons[Tasks][Tasks]= {
     /* edge 1 */ { 0, 0, 2, 0, 0, 0},
     /* edge 2 */ { 3, 0, 0, 0, 0, 0},
     /* edge 3 */ { 0, 2, 0, 0, 0, 0}
+    }
 };
 
 /*
 *  --------- END CONFIGURATION SECTION
 */
-clock time[Tasks];//, exec[Tasks];
-bool complete[Tasks];
-bool fired[Tasks]; 
+clock time[Dags][Tasks];//, exec[Tasks];
+bool complete[Dags][Tasks];
+bool fired[Dags][Tasks]; 
 
-bool error[Tasks];
-int counter[Tasks];
+/* debug variables */
+bool error[Dags][Tasks];
+int counter[Dags][Tasks];
 
 urgent chan ready[Procs];
-chan finished[Tasks];//run[Procs+1], stop[Procs], done[Procs];
+chan finished[Dags][Tasks];//run[Procs+1], stop[Procs], done[Procs];
 
 
 /*
@@ -142,15 +151,15 @@ void setParams(t_id t, r_id r, bool preempt) {
   param.task = t; param.resource = r; param.preempt = preempt;
 }
 
-meta t_id ready_task;
+meta t_id ready_task[Dags];
 
 void insert_at(int[0,Tasks] pos, t_id tid, r_id rid) {
   int i;
-  for(i = buffer[rid].length; i &gt; pos; i--) {
-    buffer[rid].element[i] = buffer[rid].element[i-1];
+  for(i = buffer[rid].length[0]; i &gt; pos; i--) {
+    buffer[rid].element[0][i] = buffer[rid].element[0][i-1];
   }
-  buffer[rid].element[pos] = tid;
-  buffer[rid].length++;
+  buffer[rid].element[0][pos] = tid;
+  buffer[rid].length[0]++;
 
 }
 
@@ -161,9 +170,9 @@ bool can_fire(d_id did, t_id tid)
     // to fire, all incoming edges must have enough tokens
     for (i = 0; i &lt; Tasks; i++)
     {
-        if (cons[i][tid] &gt; 0)
+        if (cons[did][i][tid] &gt; 0)
         {
-            if (edge_buffer[i][tid] &gt;= cons[i][tid])
+            if (edge_buffer[did][i][tid] &gt;= cons[did][i][tid])
             {
                 return true;
             }            
@@ -178,9 +187,9 @@ void consume(d_id did, t_id tid)
 
     for (i = 0; i &lt; Tasks; i++)
     {
-        if (cons[i][tid] &gt; 0)
+        if (cons[did][i][tid] &gt; 0)
         {
-            edge_buffer[i][tid] -= cons[i][tid];
+            edge_buffer[did][i][tid] -= cons[did][i][tid];
         }
     }
     // reset clock do actor disparado
@@ -193,9 +202,9 @@ void produce(d_id did, t_id tid)
 
     for (i = 0; i &lt; Tasks; i++)
     {
-        if (prod[tid][i] &gt; 0)
+        if (prod[did][tid][i] &gt; 0)
         {
-            edge_buffer[tid][i] += prod[tid][i];  
+            edge_buffer[did][tid][i] += prod[did][tid][i];  
         }
     }
 }
@@ -207,18 +216,18 @@ void produce(d_id did, t_id tid)
 		<declaration>
 void removeTask() {
   int i = 0;
-  buffer[id].length--;
+  buffer[id].length[0]--;
   do {
-    buffer[id].element[i] = buffer[id].element[i+1];
+    buffer[id].element[0][i] = buffer[id].element[0][i+1];
     i++;
-  } while (i &lt; buffer[id].length);
-  buffer[id].element[buffer[id].length] = 0;
+  } while (i &lt; buffer[id].length[0]);
+  buffer[id].element[0][buffer[id].length[0]] = 0;
 }
 
-t_id front() { return buffer[id].element[0]; }
+t_id front() { return buffer[id].element[0][0]; }
 
 bool empty() {
-  return buffer[id].length == 0;
+  return buffer[id].length[0] == 0;
 }</declaration>
 		<location id="id0" x="-662" y="-323">
 			<committed/>
@@ -262,7 +271,7 @@ bool empty() {
 		<transition id="id8">
 			<source ref="id3"/>
 			<target ref="id2"/>
-			<label kind="synchronisation" x="-985" y="-281">finished[front()]?</label>
+			<label kind="synchronisation" x="-985" y="-281">finished[0][front()]?</label>
 			<label kind="assignment" x="-934" y="-306">removeTask()</label>
 			<nail x="-820" y="-145"/>
 		</transition>
@@ -308,7 +317,7 @@ bool dependencies_met() { // deprected - replaced by can_fire(0, id);
 }
 
 void completed() { //deprected
-  complete[id] = true;
+  complete[0][id] = true;
 }
 
 time_t convertToTime(double x) {
@@ -329,43 +338,43 @@ time_t convertToTime(double x) {
 
 void new_period() { //deprected
 
-  complete[id] = false;
+  complete[0][id] = false;
 
   if (dag[0].sporadic == true)
   {
       int i = 0;
       // for (i = 0; i &lt; dag[0].
 // completed[]
-      new_sporadic_period = task[id].min_period + 1;// convertToTime(random(Sporadic_Interval) + 1);
-      task[id].max_period = task[id].min_period = new_sporadic_period;
+      new_sporadic_period = task[0][id].min_period + 1;// convertToTime(random(Sporadic_Interval) + 1);
+      task[0][id].max_period = task[0][id].min_period = new_sporadic_period;
   }
 }
 
-time_t initialOffset() { return task[id].initial_offset; }
-time_t minPeriod() { return task[id].min_period; }
-time_t maxPeriod() { return task[id].max_period; }
-time_t offset() { return task[id].offset; }
-time_t deadline() { return task[id].deadline; }
-time_t BCET() { return task[id].bcet; }
-time_t WCET() { return task[id].wcet; }
-time_t priotiry() { return task[id].pri; }
-r_id resource() { return task[id].curr_resource; }
+time_t initialOffset() { return task[0][id].initial_offset; }
+time_t minPeriod() { return task[0][id].min_period; }
+time_t maxPeriod() { return task[0][id].max_period; }
+time_t offset() { return task[0][id].offset; }
+time_t deadline() { return task[0][id].deadline; }
+time_t BCET() { return task[0][id].bcet; }
+time_t WCET() { return task[0][id].wcet; }
+time_t priotiry() { return task[0][id].pri; }
+r_id resource() { return task[0][id].curr_resource; }
 
 void findBestResource() {
     int best_len = Tasks + 1;
     int i;
 
     best_resource_found = false;
-    task[id].curr_resource = -1;
+    task[0][id].curr_resource = -1;
 
     for (i = 0; i &lt; Procs-1; i++) {
-        r_id r = task[id].resources[i];
+        r_id r = task[0][id].resources[i];
 
-        if (load[r] + task[id].wcet &lt;= load_limit[r]) {
+        if (load[r] + task[0][id].wcet &lt;= load_limit[r]) {
 
-            if (buffer[r].length &lt; best_len) {
-                best_len = buffer[r].length;
-                task[id].curr_resource = r;
+            if (buffer[r].length[0] &lt; best_len) {
+                best_len = buffer[r].length[0];
+                task[0][id].curr_resource = r;
                 best_resource_found = true;
             }
         }
@@ -377,8 +386,8 @@ int[0,1] isRunning() {
   int i;
   for (i = 0; i &lt; Procs-1; i++)
   {
-    r_id r = task[id].resources[i];
-    if (buffer[r].length &gt; 0 &amp;&amp; buffer[r].element[0] == id)
+    r_id r = task[0][id].resources[i];
+    if (buffer[r].length[0] &gt; 0 &amp;&amp; buffer[r].element[0][0] == id)
     {
       return 1;
     }
@@ -405,7 +414,7 @@ int[0,1] isRunning() {
 		<location id="id17" x="-246" y="-467">
 			<name x="-254" y="-499">Initial</name>
 			<label kind="invariant" x="-222" y="-483">x' == 0 &amp;&amp;
-time[id] &lt;= initialOffset()</label>
+time[0][id] &lt;= initialOffset()</label>
 			<label kind="comments" x="-442" y="-476">x' ==0 clock paused</label>
 		</location>
 		<location id="id18" x="-258" y="118" color="#ff0000">
@@ -414,7 +423,7 @@ time[id] &lt;= initialOffset()</label>
 		<location id="id19" x="280" y="425">
 			<name x="296" y="417">PeriodDone</name>
 			<label kind="invariant" x="224" y="441">x' == 0 &amp;&amp;
-time[id] &lt;= maxPeriod()</label>
+time[0][id] &lt;= maxPeriod()</label>
 		</location>
 		<location id="id20" x="280" y="119">
 			<name x="296" y="111">Ready</name>
@@ -423,8 +432,8 @@ x &lt;= WCET()</label>
 		</location>
 		<location id="id21" x="280" y="-297">
 			<name x="256" y="-329">WaitingOffset</name>
-			<label kind="invariant" x="304" y="-313">x' == 0 &amp;&amp;
-time[id] &lt;= offset()</label>
+			<label kind="invariant" x="306" y="-314">x' == 0 &amp;&amp;
+time[0][id] &lt;= offset()</label>
 		</location>
 		<location id="id22" x="280" y="-59">
 			<name x="297" y="-76">SelectResource</name>
@@ -444,12 +453,12 @@ time[id] &lt;= offset()</label>
 			<label kind="synchronisation" x="297" y="0">ready[resource()]!</label>
 			<label kind="assignment" x="298" y="17">ready_task = id,
 consume(0, id),
-fired[id] = true</label>
+fired[0][id] = true</label>
 		</transition>
 		<transition id="id25">
 			<source ref="id21"/>
 			<target ref="id13"/>
-			<label kind="guard" x="289" y="-255">time[id] == offset()</label>
+			<label kind="guard" x="289" y="-255">time[0][id] == offset()</label>
 		</transition>
 		<transition id="id26">
 			<source ref="id15"/>
@@ -464,35 +473,35 @@ fired[id] = true</label>
 		<transition id="id28">
 			<source ref="id17"/>
 			<target ref="id16"/>
-			<label kind="guard" x="-238" y="-391">time[id] == initialOffset()</label>
+			<label kind="guard" x="-238" y="-391">time[0][id] == initialOffset()</label>
 		</transition>
 		<transition id="id29">
 			<source ref="id16"/>
 			<target ref="id21"/>
-			<label kind="assignment" x="-272" y="-272">time[id] = 0, x = 0,
+			<label kind="assignment" x="-272" y="-272">time[0][id] = 0, x = 0,
 new_period()</label>
 		</transition>
 		<transition id="id30">
 			<source ref="id19"/>
 			<target ref="id16"/>
-			<label kind="guard" x="-102" y="403">time[id] &gt;= minPeriod()</label>
+			<label kind="guard" x="-102" y="403">time[0][id] &gt;= minPeriod()</label>
 			<nail x="-298" y="424"/>
 			<nail x="-298" y="-295"/>
 		</transition>
 		<transition id="id31">
 			<source ref="id20"/>
 			<target ref="id18"/>
-			<label kind="guard" x="-85" y="91">time[id] &gt; deadline()</label>
-			<label kind="assignment" x="-68" y="127">error[id] := true</label>
+			<label kind="guard" x="-85" y="91">time[0][id] &gt; deadline()</label>
+			<label kind="assignment" x="-68" y="127">error[0][id] := true</label>
 		</transition>
 		<transition id="id32">
 			<source ref="id20"/>
 			<target ref="id15"/>
 			<label kind="guard" x="288" y="177">x &gt;= BCET()</label>
-			<label kind="synchronisation" x="288" y="201">finished[id]!</label>
+			<label kind="synchronisation" x="288" y="201">finished[0][id]!</label>
 			<label kind="assignment" x="289" y="221">completed(),
 produce(0, id),
-counter[id]++</label>
+counter[0][id]++</label>
 		</transition>
 	</template>
 	<template>
@@ -514,7 +523,7 @@ counter[id]++</label>
 			<source ref="id34"/>
 			<target ref="id33"/>
 			<label kind="synchronisation" x="-168" y="-232">insert_task[FIFO]?</label>
-			<label kind="assignment" x="-168" y="-200">insert_at(buffer[param.resource].length,
+			<label kind="assignment" x="-168" y="-200">insert_at(buffer[param.resource].length[0],
 	param.task,
 	param.resource)</label>
 		</transition>
@@ -528,7 +537,7 @@ void insert_task_in_buffer() {
   int place = (param.preempt ? 0 : 1);
   int i;
   // Find out where to put the task
-  while ( place &lt; buffer[r].length &amp;&amp; task[buffer[r].element[place]].pri &gt;= task[t].pri ) {
+  while ( place &lt; buffer[r].length[0] &amp;&amp; task[0][buffer[r].element[0][place]].pri &gt;= task[0][t].pri ) {
     place++;
   }
   insert_at(place,t,r);
@@ -587,9 +596,9 @@ void resetVars() {
 		<transition id="id45">
 			<source ref="id42"/>
 			<target ref="id42"/>
-			<label kind="guard" x="-128" y="-304">place &lt; buffer[rid].length &amp;&amp;
-time[tid]-task[tid].deadline &lt;=
-time[buffer[rid].element[place]] - task[buffer[rid].element[place]].deadline</label>
+			<label kind="guard" x="-128" y="-304">place &lt; buffer[rid].length[0] &amp;&amp;
+time[0][tid]-task[0][tid].deadline &lt;=
+time[0][buffer[rid].element[0][place]] - task[0][buffer[rid].element[0][place]].deadline</label>
 			<label kind="assignment" x="-127" y="-246">place++</label>
 			<nail x="-136" y="-280"/>
 			<nail x="-136" y="-248"/>
@@ -597,9 +606,9 @@ time[buffer[rid].element[place]] - task[buffer[rid].element[place]].deadline</la
 		<transition id="id46">
 			<source ref="id42"/>
 			<target ref="id41"/>
-			<label kind="guard" x="-170" y="-178">place == buffer[rid].length ||
-time[tid]-task[tid].deadline &gt;
-time[buffer[rid].element[place]] - task[buffer[rid].element[place]].deadline</label>
+			<label kind="guard" x="-170" y="-178">place == buffer[rid].length[0] ||
+time[0][tid]-task[0][tid].deadline &gt;
+time[0][buffer[rid].element[0][place]] - task[0][buffer[rid].element[0][place]].deadline</label>
 			<label kind="assignment" x="-170" y="-122">insert_at(place,tid,rid)</label>
 		</transition>
 		<transition id="id47">
