@@ -152,7 +152,7 @@ void setParams(d_id d, t_id t, r_id r, bool preempt) {
   param.dag = d; param.task = t; param.resource = r; param.preempt = preempt;
 }
 
-meta t_id ready_task[Dags];
+meta t_id ready_task;
 
 void insert_at(int[0,Tasks] pos, t_id tid, r_id rid) {
   int i;
@@ -250,7 +250,7 @@ bool empty() {
 			<source ref="id1"/>
 			<target ref="id3"/>
 			<label kind="guard" x="-636" y="-238">empty()</label>
-			<label kind="assignment" x="-636" y="-217">insert_at(0,ready_task[0],id)</label>
+			<label kind="assignment" x="-636" y="-217">insert_at(0,ready_task,id)</label>
 			<nail x="-310" y="-201"/>
 			<nail x="-700" y="-201"/>
 		</transition>
@@ -267,7 +267,7 @@ bool empty() {
 			<target ref="id0"/>
 			<label kind="guard" x="-594" y="-366">!empty()</label>
 			<label kind="synchronisation" x="-594" y="-349">insert_task[policy]!</label>
-			<label kind="assignment" x="-653" y="-315">setParams(0, ready_task[0],id,preemptive)</label>
+			<label kind="assignment" x="-653" y="-315">setParams(0, ready_task,id,preemptive)</label>
 		</transition>
 		<transition id="id8">
 			<source ref="id3"/>
@@ -458,7 +458,7 @@ time[gid][tid] &lt;= offset()</label>
 			<target ref="id20"/>
 			<label kind="guard" x="297" y="-17">best_resource_found == true</label>
 			<label kind="synchronisation" x="297" y="0">ready[resource()]!</label>
-			<label kind="assignment" x="298" y="17">ready_task[gid] = tid,
+			<label kind="assignment" x="298" y="17">ready_task = tid,
 consume(gid, tid),
 fired[gid][tid] = true</label>
 		</transition>
