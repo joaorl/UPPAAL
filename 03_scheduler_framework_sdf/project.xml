@@ -168,6 +168,12 @@ void insert_at(int[0,Tasks] pos, t_id tid, r_id rid) {
 bool can_fire(d_id did, t_id tid)
 {
     int i;
+
+    if (task[did][tid].type == 1 &amp;&amp;
+        task[did][tid].curr_resource != bus[0]) {
+        return false;
+    }
+
     // to fire, all incoming edges must have enough tokens
     for (i = 0; i &lt; Tasks; i++)
     {
@@ -186,6 +192,11 @@ void consume(d_id did, t_id tid)
 {
     int i;
 
+    if (task[did][tid].type == 1 &amp;&amp;
+        task[did][tid].curr_resource != bus[0]) {
+        return;
+    }
+
     for (i = 0; i &lt; Tasks; i++)
     {
         if (cons[did][i][tid] &gt; 0)
@@ -200,6 +211,12 @@ void consume(d_id did, t_id tid)
 void produce(d_id did, t_id tid)
 {
     int i;
+
+
+    if (task[did][tid].type == 1 &amp;&amp;
+        task[did][tid].curr_resource != bus[0]) {
+        return;
+    }
 
     for (i = 0; i &lt; Tasks; i++)
     {
@@ -367,24 +384,75 @@ time_t WCET() { return task[gid][tid].wcet; }
 time_t priotiry() { return task[gid][tid].pri; }
 r_id resource() { return task[gid][tid].curr_resource; }
 
-void findBestResource() {
-    int best_len = Tasks + 1;
+int findEdge(t_id pred, t_id succ) {
     int i;
 
-    best_resource_found = false;
+    for (i = 0; i &lt; Tasks; i++) {
+        if (task[gid][i].type == 1) {
+            if (cons[gid][pred][i] &gt; 0 &amp;&amp; prod[gid][i][succ] &gt; 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+void checkPredecessorsOfTask()
+{
+    // bool ret = false;
+    int pred;
+
+    for (pred = 0; pred &lt; Tasks; pred++) {
+        if (cons[gid][pred][tid] &gt; 0) {
+            r_id pred_res = task[gid][pred].curr_resource;
+            r_id this_res = task[gid][tid].curr_resource;
+
+            if (pred_res != -1 &amp;&amp; this_res != -1 &amp;&amp; this_res != pred_res) {
+
+                int edge = findEdge(pred, tid);
+                if (edge &gt;= 0) {
+                    task[gid][edge].curr_resource = bus[0];
+                    // ret = true;
+                }
+            }
+        }
+    }
+
+    // return ret;
+}
+
+bool findBestProcessor()
+{
+    int best_len = Tasks + 1;
+    bool ret = false;
+    int i;
+
     task[gid][tid].curr_resource = -1;
 
     for (i = 0; i &lt; Procs-1; i++) {
         r_id r = task[gid][tid].resources[i];
 
         if (load[r] + task[gid][tid].wcet &lt;= load_limit[r]) {
-
             if (buffer[r].length[gid] &lt; best_len) {
                 best_len = buffer[r].length[gid];
                 task[gid][tid].curr_resource = r;
-                best_resource_found = true;
+                ret = true;
             }
         }
+    }
+
+    return ret;
+}
+
+void findBestResource() {
+
+    best_resource_found = findBestProcessor();
+    /**
+     * check if it makes sense to migrate the task to another processor, if so, consider the edge task
+     */
+    if (best_resource_found)
+    {
+        checkPredecessorsOfTask();
     }
 }
 
