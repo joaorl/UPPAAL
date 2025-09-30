@@ -4,6 +4,8 @@
 	<declaration>/*
 *  --------- BEGIN CONFIGURATION SECTION
 */
+const bool Debug_Mode = true;
+
 const bool Periodic = true;
 
 const double Sporadic_Interval = 40.0;
@@ -11,7 +13,7 @@ const double Sporadic_Interval = 40.0;
 const int MaxTime = 45;
 typedef int[0,MaxTime] time_t;
 
-const int Tasks = 2;                 // Number of tasks/actors
+const int Tasks = 3;                 // Number of tasks/actors
 typedef int[0,Tasks-1] t_id;
 
 const int Procs = 3;                 // Number of resources
@@ -22,10 +24,10 @@ typedef int[0,Dags-1] d_id;
 
 typedef int[-1, Dags*Tasks-1] g_id;
 
-const int load_limit[Procs] = {9,9,9};
+const int load_limit[Procs] = {6,11,9};
 
 const int BufferSize = 2;
-typedef int[0,BufferSize-1] b_id;
+typedef int[0,Tasks-1] b_id;
 
 typedef struct {
   bool sporadic;
@@ -47,27 +49,16 @@ typedef struct {
 
 } task_t;
 
-int res_state[Procs] = {0,0,0};
-
 const r_id res[Procs-1] = {0,1};
 const r_id bus[Procs-1] = {2,2};
 const dag_t dag[Dags] = {
 {false, 6}
 };
 
-chan found[Dags][Tasks];
-
-//init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
-task_t task[Dags][Tasks] = {
-    {
-        {0,5,5,0,35,5,5,res,1,0,0}, /* task 0 */
-        {0,5,5,0,35,5,5,res,1,0,0}
-    }
-};
 
 typedef struct {
   int[0,Tasks] length;
-  t_id element[BufferSize];
+  t_id element[Tasks];
 } buffer_t; 
 
 buffer_t buffer[Procs];
@@ -82,17 +73,19 @@ const int FPS  		= 2;
 chan inserted, insert_task[Policies];
 typedef int[0,Policies-1] policy_t;
 
-/*
-* Task graph definition of dependencies
-*
-* Meaning of Depend[i][j]:
-*    - 0/false : task i does not depend on task j
-*    - 1/true  : task i depends on task j
-*/
+
+//init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
+/*task_t task[Dags][Tasks] = {
+    {
+        {0,5,5,0,35,5,5,res,1,0,0},
+        {0,5,5,0,35,5,5,res,1,0,0}
+    }
+};
+
 int edge_buffer[Dags][Tasks][Tasks] = {
     {
-               /*t0,t1,t2, e1,e2,e3*/
-    /* task 0 */ { 0,3},
+ 
+{ 0,3},
                  { 3,0}
     }
 };
@@ -100,19 +93,55 @@ int edge_buffer[Dags][Tasks][Tasks] = {
 
 const int prod[Dags][Tasks][Tasks] = {
     {
-                /*t0,t1,t2, e1,e2,e3*/
-    /* task 0 */ { 0,20},
+
+  { 0,20},
                  { 20,0}
     }
 };
 
 const int cons[Dags][Tasks][Tasks]= {
     {
-                /*t0,t1,t2, e1,e2,e3*/
-    /* task 0 */ { 0,1},
+
+  { 0,1},
                  { 1,0}
     }
 };
+
+*/
+
+task_t task[Dags][Tasks] = {
+    {
+        {0,2,2,0,35,5,5,res,1,0,0},
+        {0,5,5,0,35,5,5,res,1,0,0},
+        {0,5,5,0,35,5,5,res,1,0,0}
+    }
+};
+
+int edge_buffer[Dags][Tasks][Tasks] = {
+    {
+        { 0, 5, 0},
+        { 5, 0, 5},
+        { 0, 5, 0}
+    }
+};
+
+
+const int prod[Dags][Tasks][Tasks] = {
+    {
+        { 0, 20, 0},
+        { 20, 0, 20},
+        { 0, 20, 0}
+    }
+};
+
+const int cons[Dags][Tasks][Tasks]= {
+    {
+        { 0, 1, 0},
+        { 1, 0, 1},
+        { 0, 1, 0}
+    }
+};
+
 
 /*
 *  --------- END CONFIGURATION SECTION
@@ -123,6 +152,7 @@ bool complete[Dags][Tasks];
 /* debug variables */
 bool error[Dags][Tasks];
 int counter[Dags][Tasks];
+int counter_resource[Procs];
 
 urgent chan ready[Procs];
 chan finished[Dags][Tasks];//run[Procs+1], stop[Procs], done[Procs];
@@ -173,7 +203,11 @@ bool can_fire(d_id did, t_id tid)
         task[did][tid].curr_resource != bus[0]) {
         return false;
     }
-    return true;
+
+    if (Debug_Mode)
+    {
+        return true;
+    }
     // to fire, all incoming edges must have enough tokens
     for (i = 0; i &lt; Tasks; i++)
     {
@@ -191,7 +225,10 @@ bool can_fire(d_id did, t_id tid)
 void consume(d_id did, t_id tid)
 {
     int i;
-    return;
+    if (Debug_Mode)
+    {
+        return;
+    }
     if (task[did][tid].type == 1 &amp;&amp;
         task[did][tid].curr_resource != bus[0]) {
         return;
@@ -210,7 +247,10 @@ void consume(d_id did, t_id tid)
 void produce(d_id did, t_id tid)
 {
     int i;
-    return;
+    if (Debug_Mode)
+    {
+        return;
+    }
     if (task[did][tid].type == 1 &amp;&amp;
         task[did][tid].curr_resource != bus[0]) {
         return;
@@ -342,6 +382,7 @@ debug_ready_task = ready_task</label>
 			<source ref="id4"/>
 			<target ref="id1"/>
 			<label kind="synchronisation" x="-543" y="-459">ready[id]?</label>
+			<label kind="assignment" x="-586" y="-425">counter_resource[id]++</label>
 			<nail x="-260" y="-433"/>
 		</transition>
 	</template>
@@ -621,20 +662,16 @@ counter[gid][tid]++</label>
 		<parameter>const d_id gid, const t_id tid</parameter>
 		<declaration>clock x;
 
-
-
 g_id to_gid(d_id d, t_id t) {
     return d * Tasks + t;
 }
 
 time_t new_sporadic_period;
 
-bool best_resource_found;
-
-int debug_resource_found= -1;
-
 void completed() {
   complete[gid][tid] = true;
+
+  load[task[gid][tid].curr_resource] -= task[gid][tid].wcet;
 }
 
 time_t convertToTime(double x) {
@@ -653,7 +690,7 @@ time_t convertToTime(double x) {
     return result;
 }
 
-void new_period() { //deprected
+void new_period() {
 
   complete[gid][tid] = false;
 
@@ -669,8 +706,6 @@ void new_period() { //deprected
   task[gid][tid].curr_resource = -1;
 }
 
-int task_id[2] = {0,0};
-
 time_t initialOffset() { return task[gid][tid].initial_offset; }
 time_t minPeriod() { return task[gid][tid].min_period; }
 time_t maxPeriod() { return task[gid][tid].max_period; }
@@ -680,81 +715,6 @@ time_t BCET() { return task[gid][tid].bcet; }
 time_t WCET() { return task[gid][tid].wcet; }
 time_t priotiry() { return task[gid][tid].pri; }
 r_id resource() { return task[gid][tid].curr_resource; }
-
-int findEdge(t_id pred, t_id succ) {
-    int i;
-
-    for (i = 0; i &lt; Tasks; i++) {
-        if (task[gid][i].type == 1) {
-            if (cons[gid][pred][i] &gt; 0 &amp;&amp; prod[gid][i][succ] &gt; 0) {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-
-void checkPredecessorsOfTask()
-{
-    int pred;
-
-    for (pred = 0; pred &lt; Tasks; pred++) {
-        if (cons[gid][pred][tid] &gt; 0) {
-            int pred_res = task[gid][pred].curr_resource;
-            int this_res = task[gid][tid].curr_resource;
-
-            if (pred_res != -1 &amp;&amp; this_res != -1 &amp;&amp; this_res != pred_res) {
-
-                int edge = findEdge(pred, tid);
-                if (edge &gt;= 0) {
-                    task[gid][edge].curr_resource = bus[0];
-                }
-            }
-        }
-    }
-}
-
-bool findBestProcessor()
-{
-    int best_len = BufferSize +1;
-    bool ret = false;
-    int i;
-
-    for (i = 0; i &lt; Procs-1; i++) {
-        r_id r = task[gid][tid].resources[i];
-
-        /*if (load[r] + task[gid][tid].wcet &gt; load_limit[r]) {
-            error[gid][tid] = true;
-        }*/
-
-        //if (load[r] + task[gid][tid].wcet &lt;= load_limit[r]) {
-       if (buffer[r].length &lt; best_len) {
-            best_len = buffer[r].length;
-            task[gid][tid].curr_resource = r;
-            debug_resource_found = r;
-            ret = true;
-        }
-       // }
-    }
-
-    return ret;
-}
-
-bool findBestResource() {
-
-    task[gid][tid].curr_resource = task_id[tid];
-    return true;
-
-    best_resource_found = findBestProcessor();
-    /**
-     * check if it makes sense to migrate the task to another processor, if so, consider the edge task
-     */
-    if (best_resource_found)
-    {
-        checkPredecessorsOfTask();
-    }
-    return best_resource_found;
-}
 
 int[0,1] isRunning() {
   return (buffer[resource()].element[0] == tid? 1 : 0);
@@ -914,94 +874,103 @@ counter[gid][tid]++</label>
 		<name>Scheduler</name>
 		<parameter>const d_id gid, const t_id tid</parameter>
 		<declaration>
-    // Estado dos recursos (0 = Idle, 1 = Busy)
-   // int res_state[Procs] = {0,0,0};
-
 int debug_resource_found= -1;
-// , assign_resource[cur_res]!
-        // start_task[cur_task]!
- /*   typedef struct {
-  int first;
-  int second;
-} pair_t;
 
-    // Fila global de pedidos de tarefas
-    pair_t task_queue[Tasks];
-    int queue_size = 0;
 
-    // Variável auxiliar para tarefa corrente
-    int cur_task = -1;
-    int cur_res  = -1;
+int findEdge(t_id pred, t_id succ) {
+    int i;
 
-    // Canais de sincronização
+    for (i = 0; i &lt; Tasks; i++) {
+        if (task[gid][i].type == 1) {
+            if (cons[gid][pred][i] &gt; 0 &amp;&amp; prod[gid][i][succ] &gt; 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
 
-    chan start_task[Dags][Tasks];            // liberta a tarefa selecionada
-    
-  */
-
-void SearchIdleResouce()
+void checkPredecessorsOfTask()
 {
-      // Seleciona a primeira tarefa na fila
-      //cur_task = task_queue[0];
-      // Procura o primeiro recurso livre
+    int pred;
+
+    for (pred = 0; pred &lt; Tasks; pred++) {
+        if (cons[gid][pred][tid] &gt; 0) {
+            int pred_res = task[gid][pred].curr_resource;
+            int this_res = task[gid][tid].curr_resource;
+
+            if (pred_res != -1 &amp;&amp; this_res != -1 &amp;&amp; this_res != pred_res) {
+
+                int edge = findEdge(pred, tid);
+                if (edge &gt;= 0) {
+                    task[gid][edge].curr_resource = bus[0];
+                }
+            }
+        }
+    }
+}
+
+bool findBestProcessor()
+{
     int best_len = BufferSize +1;
     bool ret = false;
     int i, j;
 
-    for (i = 0; i &lt; Procs-1; i++) {
+    for (i = 0; i &lt; Procs-1; i++)
+    {
         r_id r = task[gid][tid].resources[i];
-        /*if (load[r] + task[gid][tid].wcet &gt; load_limit[r]) {
-            error[gid][tid] = true;
-        }*/
 
-        //if (load[r] + task[gid][tid].wcet &lt;= load_limit[r]) {
-       if (buffer[r].length &lt; best_len &amp;&amp; task[gid][tid].curr_resource == -1) {
+        if (buffer[r].length &lt; best_len &amp;&amp;
+            task[gid][tid].curr_resource == -1 &amp;&amp;
+            load[r] + task[gid][tid].wcet &lt;= load_limit[r])
+        {
             best_len = buffer[r].length;
             task[gid][tid].curr_resource = debug_resource_found = r;
             ret = true;
+            load[r] += task[gid][tid].wcet;
         }
-       // }
     }
-      /*return;
-      cur_res = -1;
-      for (i=0; i&lt;Procs; i++) {
-        if (res_state[i] == 0 &amp;&amp; cur_res == -1) cur_res = i;
-      }
-      // Desloca a fila
-      for (j=0; j&lt;queue_size-1; j++)
-      {
-        task_queue[j] = task_queue[j+1];
-        queue_size--;
-      }
-      if (cur_res != -1) res_state[cur_res] = 1;*/
+
+    return ret;
 }
-/*
-void AddTaskToQueue()
+
+void SearchIdleResouce()
 {
-    task_queue[queue_size].first = gid;
-    task_queue[queue_size].second = tid;
-    queue_size++;
-}*/</declaration>
+    bool best_resource_found;
+
+    best_resource_found = findBestProcessor();
+
+    /**
+     * check if it makes sense to migrate the task
+     * to another processor, if so, consider the edge task
+     */
+    if (best_resource_found)
+    {
+        // checkPredecessorsOfTask();
+    }
+}
+</declaration>
 		<location id="id60" x="-153" y="0">
 			<name x="-212" y="-8">Idle</name>
 		</location>
 		<location id="id61" x="493" y="0">
-			<name x="498" y="-42">Decide</name>
+			<name x="476" y="-42">Decide</name>
 		</location>
 		<init ref="id60"/>
 		<transition id="id62">
 			<source ref="id60"/>
 			<target ref="id61"/>
 			<label kind="guard" x="0" y="-127">task[gid][tid].curr_resource == -1</label>
-			<label kind="synchronisation" x="42" y="-59">request_resource[gid][tid]?</label>
-			<label kind="assignment" x="68" y="-102">SearchIdleResouce()</label>
+			<label kind="synchronisation" x="34" y="-102">request_resource[gid][tid]?</label>
+			<label kind="assignment" x="68" y="-59">SearchIdleResouce()</label>
 			<nail x="-17" y="-68"/>
 			<nail x="340" y="-68"/>
 		</transition>
 		<transition id="id63">
 			<source ref="id61"/>
 			<target ref="id60"/>
-			<label kind="synchronisation" x="25" y="8">resource_assigned[gid][tid]!</label>
+			<label kind="guard" x="0" y="17">task[gid][tid].curr_resource != -1</label>
+			<label kind="synchronisation" x="25" y="42">resource_assigned[gid][tid]!</label>
 		</transition>
 	</template>
 	<template>
