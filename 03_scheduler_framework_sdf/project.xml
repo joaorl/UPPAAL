@@ -1084,7 +1084,8 @@ bool FindBestProcessor()
             ret = true;
         }
     }
-  
+    // check what is the next task to be released to allocate
+    // the current task over analysis
     for (i = 0; i &lt; Procs-1; i++)
     {
         r_id r = task[gid][tid].resources[i];
