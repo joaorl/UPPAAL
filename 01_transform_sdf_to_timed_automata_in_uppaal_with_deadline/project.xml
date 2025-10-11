@@ -20,7 +20,7 @@ int buff_w2v =6;
 int buff_v2v =1;
 
 // Flag to check if SDFG has started
-bool flag_act = false;
+bool flag_act = true;
 
 // Counter for each actor
 int counter_u , counter_v , counter_w =0;
@@ -245,26 +245,35 @@ system SDF_Graph , Processor0, Processor1 , Processor2 , Processor3;
 //system SDF_Graph , Processor0_0, Processor1_0, Processor2_0, Processor3_0;	</system>
 	<queries>
 		<option key="--statespace-consumption" value="2"/>
-		<option key="--diagnostic" value="2"/>
+		<option key="--diagnostic" value="1"/>
 		<query>
 			<formula>A[] not deadlock</formula>
 			<comment>Checks for the existence of deadlocks</comment>
-			<result outcome="failure" type="quality" timestamp="2025-09-05 10:00:59 +0100">
-				<option key="--statespace-consumption" value="2"/>
-				<option key="--diagnostic" value="2"/>
-			</result>
 		</query>
 		<query>
-			<formula>A[] not (du &gt; deadline_u or dv &gt; deadline_v or dw &gt; deadline_w)</formula>
+			<formula>A[] (dw&gt;deadline_w)</formula>
 			<comment>Checks compliance with arbitrary deadlines</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; (du &gt; deadline_u || dv &gt; deadline_v || dw &gt; deadline_w)</formula>
+			<comment/>
 		</query>
 		<query>
 			<formula>A[] forall(i:int[0,3]) load[i] &lt;= load_limit[i]</formula>
 			<comment>Checks that no processor exceeds the load limit</comment>
 		</query>
 		<query>
+			<formula>E&lt;&gt; exists(i:int[0,3]) load[i] &gt; load_limit[i]
+</formula>
+			<comment/>
+		</query>
+		<query>
 			<formula>E&lt;&gt; (counter_u == 12 and counter_v == 6 and counter_w == 9)</formula>
 			<comment>throughput analysis</comment>
+			<result outcome="success" type="quality" timestamp="2025-10-11 17:26:53 +0100">
+				<option key="--statespace-consumption" value="2"/>
+				<option key="--diagnostic" value="1"/>
+			</result>
 		</query>
 	</queries>
 </nta>
