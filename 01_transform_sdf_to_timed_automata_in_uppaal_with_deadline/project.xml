@@ -97,7 +97,7 @@ du := 0</label>
 			<label kind="synchronisation" x="68" y="399">end[e][u]?</label>
 			<label kind="assignment" x="68" y="425">produce(buff_u2v,1),
 flag_act:=false,
-counter_u++</label>
+counter_u</label>
 			<label kind="comments" x="68" y="493">End_u</label>
 			<nail x="102" y="340"/>
 			<nail x="178" y="416"/>
@@ -109,7 +109,7 @@ counter_u++</label>
 			<label kind="synchronisation" x="331" y="408">end[e][w]?</label>
 			<label kind="assignment" x="331" y="433">produce(buff_w2v,2),
 flag_act:=false,
-counter_w++</label>
+counter_w</label>
 			<label kind="comments" x="331" y="501">End_w</label>
 			<nail x="382" y="365"/>
 			<nail x="280" y="408"/>
@@ -135,7 +135,7 @@ dw := 0</label>
 produce(buff_v2u,2),
 produce(buff_v2v,1),
 flag_act:=false,
-counter_v++</label>
+counter_v</label>
 			<label kind="comments" x="365" y="42">End_v</label>
 			<nail x="289" y="94"/>
 			<nail x="357" y="93"/>
@@ -251,21 +251,29 @@ system SDF_Graph , Processor0, Processor1 , Processor2 , Processor3;
 			<comment>Checks for the existence of deadlocks</comment>
 		</query>
 		<query>
-			<formula>A[] (dw&gt;deadline_w)</formula>
-			<comment>Checks compliance with arbitrary deadlines</comment>
-		</query>
-		<query>
 			<formula>E&lt;&gt; (du &gt; deadline_u || dv &gt; deadline_v || dw &gt; deadline_w)</formula>
 			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-10-11 19:13:30 +0100">
+				<option key="--statespace-consumption" value="2"/>
+				<option key="--diagnostic" value="1"/>
+			</result>
 		</query>
 		<query>
 			<formula>A[] forall(i:int[0,3]) load[i] &lt;= load_limit[i]</formula>
 			<comment>Checks that no processor exceeds the load limit</comment>
+			<result outcome="success" type="quality" timestamp="2025-10-11 19:13:44 +0100">
+				<option key="--statespace-consumption" value="2"/>
+				<option key="--diagnostic" value="1"/>
+			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; exists(i:int[0,3]) load[i] &gt; load_limit[i]
 </formula>
 			<comment/>
+			<result outcome="failure" type="quality" timestamp="2025-10-11 19:13:50 +0100">
+				<option key="--statespace-consumption" value="2"/>
+				<option key="--diagnostic" value="1"/>
+			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; (counter_u == 12 and counter_v == 6 and counter_w == 9)</formula>

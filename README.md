@@ -11,13 +11,18 @@ This folder contains the initial model, which directly transforms an SDF graph i
 
 Ahmad, Waheed \& de Groote, Robert \& Hölzenspies, Philip \& Stoelinga, Mariëlle \& Pol, Jaco. (2014). 72-81. 10.1109/ACSD.2014.13.
 
-Uppaal VERIFIER results:
+**Uppaal VERIFIER results:**
 
 \- No deadlock (counters need to be removed);
 
 ### 01- SDF modeled as a timed automaton with arbitrary deadlines (initial approach) and CPU capacity checking
 
 This folder extends the project in the `00` folder, with the aim of adding a check of the maximum load limit on each processor and starting the arbitrary deadline implementation
+
+**Uppaal VERIFIER results:**
+
+\- No deadlock (counters need to be removed);
+\- No processor exceeds the load limit (counters need to be removed);
 
 ### 02- Multi-SDF in UPPAAL
 
