@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>
+// Global Clock
+clock global ;
+const int N = 4; //# of Processors
+const int M = 3 ; //# of Actors
+
+// Task and Processors IDs
+typedef int [0 ,N -1] id_r ;
+
+// Channels
+chan end [ N ][ M ] , fire [ N ][ M ];
+
+// Buffer and Edge Sizes
+int buff_u2v , buff_v2w =0;
+int buff_v2u =2;
+int buff_w2v =6;
+int buff_v2v =1;
+
+// Flag to check if SDFG has started
+bool flag_act = true;
+
+// Counter for each actor
+int counter_u , counter_v , counter_w =0;
+
+// Arbitrary deadlines of each actor
+const int deadline_u = 2;
+const int deadline_v = 2;
+const int deadline_w = 3;
+
+// Deadline tracking clocks
+// clock du, dv, dw;
+
+void produce ( int &amp; channel_tokens , int tokens )
+{
+    channel_tokens += tokens ;
+}
+
+void consume ( int &amp; channel_tokens , int tokens )
+{
+    channel_tokens -= tokens ;
+}
+
+
+  </declaration>
+	<template>
+		<name>SDFG</name>
+		<parameter>const int u, const int v, const int w</parameter>
+		<declaration>
+/* No local declarations here */
+		</declaration>
+		<location id="id0" x="267" y="217">
+			<name x="238" y="187">Initial</name>
+		</location>
+		<init ref="id0"/>
+		<transition id="id1">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="0" y="8">e:id_r</label>
+			<label kind="guard" x="0" y="34">buff_u2v&gt;=2&amp;&amp;buff_w2v&gt;=3&amp;&amp;buff_v2v&gt;=1</label>
+			<label kind="synchronisation" x="0" y="59">fire[e][v]!</label>
+			<label kind="assignment" x="0" y="76">consume(buff_u2v,2),
+consume(buff_w2v,3),
+consume(buff_v2v,1)</label>
+			<label kind="comments" x="0" y="-17">Fire_v</label>
+			<nail x="136" y="153"/>
+			<nail x="212" y="85"/>
+		</transition>
+		<transition id="id2">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="-34" y="187">e:id_r</label>
+			<label kind="guard" x="-34" y="204">buff_v2u&gt;=1</label>
+			<label kind="synchronisation" x="-34" y="221">fire[e][u]!</label>
+			<label kind="assignment" x="-34" y="238">consume(buff_v2u,1)</label>
+			<label kind="comments" x="-34" y="161">Fire_u</label>
+			<nail x="93" y="204"/>
+			<nail x="93" y="306"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="68" y="374">e:id_r</label>
+			<label kind="synchronisation" x="68" y="399">end[e][u]?</label>
+			<label kind="assignment" x="68" y="425">produce(buff_u2v,1),
+flag_act:=false,
+counter_u++</label>
+			<label kind="comments" x="68" y="493">End_u</label>
+			<nail x="102" y="340"/>
+			<nail x="178" y="416"/>
+		</transition>
+		<transition id="id4">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="331" y="391">e:id_r</label>
+			<label kind="synchronisation" x="331" y="408">end[e][w]?</label>
+			<label kind="assignment" x="331" y="433">produce(buff_w2v,2),
+flag_act:=false,
+counter_w++</label>
+			<label kind="comments" x="331" y="501">End_w</label>
+			<nail x="382" y="365"/>
+			<nail x="280" y="408"/>
+		</transition>
+		<transition id="id5">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="471" y="249">e:id_r</label>
+			<label kind="guard" x="471" y="266">buff_v2w&gt;=2</label>
+			<label kind="synchronisation" x="467" y="289">fire[e][w]!</label>
+			<label kind="assignment" x="467" y="306">consume(buff_v2w,2)</label>
+			<label kind="comments" x="471" y="223">Fire_w</label>
+			<nail x="454" y="334"/>
+			<nail x="454" y="223"/>
+		</transition>
+		<transition id="id6">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="select" x="365" y="68">e:id_r</label>
+			<label kind="synchronisation" x="365" y="85">end[e][v]?</label>
+			<label kind="assignment" x="365" y="102">produce(buff_v2w,3),
+produce(buff_v2u,2),
+produce(buff_v2v,1),
+flag_act:=false,
+counter_v++</label>
+			<label kind="comments" x="365" y="42">End_v</label>
+			<nail x="289" y="94"/>
+			<nail x="357" y="93"/>
+		</transition>
+	</template>
+	<template>
+		<name>Processor</name>
+		<parameter>const int p_id, const int u, const int v, const int w</parameter>
+		<declaration>
+clock ticks; /* local execution clock */
+// Deadline tracking clocks		</declaration>
+		<location id="id7" x="-229" y="-42">
+			<name x="-239" y="-72">Idle</name>
+		</location>
+		<location id="id8" x="221" y="-42">
+			<name x="195" y="-76">InUse_u</name>
+			<label kind="invariant" x="187" y="-17">ticks&lt;=deadline_u</label>
+		</location>
+		<location id="id9" x="-662" y="-42">
+			<name x="-688" y="-76">InUse_v</name>
+			<label kind="invariant" x="-782" y="-17">ticks&lt;=deadline_v</label>
+		</location>
+		<location id="id10" x="-221" y="-212">
+			<name x="-255" y="-246">InUse_w</name>
+			<label kind="invariant" x="-289" y="-195">ticks&lt;=deadline_w</label>
+		</location>
+		<init ref="id7"/>
+		<transition id="id11">
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-85" y="-85">fire[p_id][u]?</label>
+			<label kind="assignment" x="-85" y="-68">ticks := 0</label>
+			<nail x="-29" y="-42"/>
+		</transition>
+		<transition id="id12">
+			<source ref="id7"/>
+			<target ref="id9"/>
+			<label kind="synchronisation" x="-492" y="-85">fire[p_id][v]?</label>
+			<label kind="assignment" x="-493" y="-68">ticks := 0</label>
+		</transition>
+		<transition id="id13">
+			<source ref="id7"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-527" y="-221">fire[p_id][w]?</label>
+			<label kind="assignment" x="-518" y="-204">ticks := 0</label>
+			<nail x="-407" y="-212"/>
+		</transition>
+		<transition id="id14">
+			<source ref="id8"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-93" y="32">ticks == deadline_u</label>
+			<label kind="synchronisation" x="-93" y="47">end[p_id][u]!</label>
+			<nail x="48" y="95"/>
+			<nail x="-93" y="94"/>
+		</transition>
+		<transition id="id15">
+			<source ref="id9"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-493" y="51">ticks == deadline_v</label>
+			<label kind="synchronisation" x="-476" y="68">end[p_id][v]!</label>
+			<nail x="-509" y="94"/>
+			<nail x="-339" y="94"/>
+		</transition>
+		<transition id="id16">
+			<source ref="id10"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-25" y="-221">ticks == deadline_w</label>
+			<label kind="synchronisation" x="-8" y="-204">end[p_id][w]!</label>
+			<nail x="-42" y="-212"/>
+		</transition>
+	</template>
+	<system>
+// Actor ids
+const int u =0;
+const int v =1;
+const int w =2;
+const int dummy =3;
+
+// Processor ids
+const int p0 =0;
+const int p1 =1;
+const int p2 =2;
+const int p3 =3;
+
+// SDF Graph template instantiation
+SDF_Graph = SDFG (u ,v , w) ;
+
+// Processor template instantiation
+Processor0 = Processor ( p0 ,u ,v , w) ;
+Processor1 = Processor ( p1 ,u ,v , w) ;
+Processor2 = Processor ( p2 ,u ,v , w) ;
+Processor3 = Processor ( p3 ,u ,v , w) ;
+// Heterogeneous Processor template instantiation
+Processor0_0 = Processor ( p0 ,u , dummy , dummy ) ;
+Processor1_0 = Processor ( p1 ,u , dummy , dummy ) ;
+Processor2_0 = Processor ( p2 , dummy ,v , dummy ) ;
+Processor3_0 = Processor ( p3 , dummy , dummy , w ) ;
+
+// Processes to be composed into a system .
+system SDF_Graph , Processor0, Processor1 , Processor2 , Processor3;
+//system SDF_Graph , Processor0_0, Processor1_0, Processor2_0, Processor3_0;	</system>
+	<queries>
+		<option key="--diagnostic" value="2"/>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment>Checks for the existence of deadlocks</comment>
+			<result outcome="success" type="quality" timestamp="2025-10-11 16:21:09 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] (du&lt;=deadline_u)</formula>
+			<comment>Checks compliance with arbitrary deadlines</comment>
+			<option key="--diagnostic" value="2"/>
+			<result outcome="failure" type="quality" timestamp="2025-10-11 16:51:51 +0100">
+				<option key="--diagnostic" value="2"/>
+			</result>
+		</query>
+		<query>
+			<formula>A[] forall(i:int[0,3]) load[i] &lt;= load_limit[i]</formula>
+			<comment>Checks that no processor exceeds the load limit</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt;(buff_u2v==0&amp;buff_v2w==0&amp;buff_v2u==2&amp;buff_w2v==6&amp;buff_v2v==1&amp;flag_act==false)
+</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-10-11 16:21:21 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; (counter_u == 12 &amp;&amp; counter_v == 6 &amp;&amp; counter_w == 9)</formula>
+			<comment>throughput analysis</comment>
+			<result outcome="success" type="quality" timestamp="2025-10-11 15:00:36 +0100">
+				<option key="--statespace-consumption" value="2"/>
+				<option key="--diagnostic" value="2"/>
+			</result>
+		</query>
+	</queries>
+</nta>
