@@ -22,6 +22,7 @@ This folder extends the project in the `00` folder, with the aim of adding a che
 **Uppaal VERIFIER results:**
 
 \- No deadlock (counters need to be removed);
+
 \- No processor exceeds the load limit (counters need to be removed);
 
 ### 02- Multi-SDF in UPPAAL
