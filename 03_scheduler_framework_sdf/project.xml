@@ -4,7 +4,7 @@
 	<declaration>/*
 *  --------- BEGIN CONFIGURATION SECTION
 */
-const bool Debug_Mode = true;
+const bool Debug_Mode = false;
 
 const bool Periodic = true;
 
@@ -13,7 +13,7 @@ const double Sporadic_Interval = 40.0;
 const int MaxTime = 45;
 typedef int[0,MaxTime] time_t;
 
-const int Tasks = 9;                 // Number of tasks/actors
+const int Tasks = 3;                 // Number of tasks/actors
 typedef int[0,Tasks-1] t_id;
 
 const int Procs = 3;                 // Number of resources
@@ -49,14 +49,6 @@ typedef struct {
 
 } task_t;
 
-const r_id res1[Procs-1] = {0,0};
-const r_id res2[Procs-1] = {1,1};
-const r_id bus[Procs-1] = {2,2};
-const dag_t dag[Dags] = {
-{false, 6}
-};
-
-
 typedef struct {
   int[0,Tasks] length;
   t_id element[Tasks];
@@ -74,190 +66,43 @@ const int FPS  		= 2;
 chan inserted, insert_task[Policies];
 typedef int[0,Policies-1] policy_t;
 
-
-//init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority
-/*task_t task[Dags][Tasks] = {
-    {
-        {0,5,5,0,35,5,5,res,1,0,0},
-        {0,5,5,0,35,5,5,res,1,0,0}
-    }
+const r_id res1[Procs-1] = {0,1};
+const r_id res2[Procs-1] = {0,1};
+const r_id bus[Procs-1] = {2,2};
+const dag_t dag[Dags] = {
+{false, 6}
 };
-
-int edge_buffer[Dags][Tasks][Tasks] = {
-    {
- 
-{ 0,3},
-                 { 3,0}
-    }
-};
-
-
-const int prod[Dags][Tasks][Tasks] = {
-    {
-
-  { 0,20},
-                 { 20,0}
-    }
-};
-
-const int cons[Dags][Tasks][Tasks]= {
-    {
-
-  { 0,1},
-                 { 1,0}
-    }
-};
-
-*/
-/*
-task_t task[Dags][Tasks] = {
-    {
-        {0,2,2,0,35,2,2,res,1,0,0},
-        {0,5,5,0,35,5,5,res,1,0,0},
-        {0,5,5,0,35,5,5,res,1,0,0},
-        {0,2,2,0,35,2,2,res,1,0,0}
-    }
-};
-
-int edge_buffer[Dags][Tasks][Tasks] = {
-    {
-        { 0, 5, 0, 5},
-        { 5, 0, 5, 0},
-        { 0, 5, 0, 5},
-        { 5, 0, 5, 0}
-    }
-};
-
-
-const int prod[Dags][Tasks][Tasks] = {
-    {
-        { 0, 20, 0, 20},
-        { 20, 0, 20, 0},
-        { 0, 20, 0, 20},
-        { 20, 0, 20, 0}
-    }
-};
-
-const int cons[Dags][Tasks][Tasks]= {
-    {
-        { 0, 1, 0, 1},
-        { 1, 0, 1, 0},
-        { 0, 1, 0, 1},
-        { 1, 0, 1, 0}
-    }
-};*/
-/*
-
-task_t task[Dags][Tasks] = {
-    {
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 3, 3, 0, 35, 3, 3, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 3, 3, 0, 35, 2, 5, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res, 1, 0, 0}
-    }
-};
-
-int edge_buffer[Dags][Tasks][Tasks] = {
-    {
-        { 0, 5, 0, 5, 0, 5, 0, 5, 0},
-        { 5, 0, 5, 0, 5, 0, 5, 0, 5},
-        { 0, 5, 0, 5, 0, 5, 0, 5, 0},
-        { 5, 0, 5, 0, 5, 0, 5, 0, 5},
-        { 0, 5, 0, 5, 0, 5, 0, 5, 0},
-        { 5, 0, 5, 0, 5, 0, 5, 0, 5},
-        { 0, 5, 0, 5, 0, 5, 0, 5, 0},
-        { 5, 0, 5, 0, 5, 0, 5, 0, 5},
-        { 0, 5, 0, 5, 0, 5, 0, 5, 0}
-    }
-};
-
-const int prod[Dags][Tasks][Tasks]= {
-    {
-        { 0, 20, 0, 20, 0, 20, 0, 20, 0},
-        { 20, 0, 20, 0, 20, 0, 20, 0, 20},
-        { 0, 20, 0, 20, 0, 20, 0, 20, 0},
-        { 20, 0, 20, 0, 20, 0, 20, 0, 20},
-        { 0, 20, 0, 20, 0, 20, 0, 20, 0},
-        { 20, 0, 20, 0, 20, 0, 20, 0, 20},
-        { 0, 20, 0, 20, 0, 20, 0, 20, 0},
-        { 20, 0, 20, 0, 20, 0, 20, 0, 20},
-        { 0, 20, 0, 20, 0, 20, 0, 20, 0}
-    }
-};
-
-const int cons[Dags][Tasks][Tasks]= {
-    {
-        { 0, 1, 0, 1, 0, 1, 0, 1, 0},
-        { 1, 0, 1, 0, 1, 0, 1, 0, 1},
-        { 0, 1, 0, 1, 0, 1, 0, 1, 0},
-        { 1, 0, 1, 0, 1, 0, 1, 0, 1},
-        { 0, 1, 0, 1, 0, 1, 0, 1, 0},
-        { 1, 0, 1, 0, 1, 0, 1, 0, 1},
-        { 0, 1, 0, 1, 0, 1, 0, 1, 0},
-        { 1, 0, 1, 0, 1, 0, 1, 0, 1},
-        { 0, 1, 0, 1, 0, 1, 0, 1, 0}
-    }
-};*/
 
 //init_offset, min_period, max_period, offset, deadline, bcet, wcet, resource, priority, allowed resource, current resource
 task_t task[Dags][Tasks] = {
     {
         {0, 2, 2, 0, 35, 2, 2, res1, 1, 0, 0},
         {0, 3, 3, 0, 35, 3, 3, res2, 1, 0, 0},
-        {0, 2, 2, 0, 35, 2, 2, res2, 1, 0, 0},
-        {0, 3, 3, 0, 35, 2, 2, bus, 1, 1, 0},
-        {0, 2, 2, 0, 35, 2, 2, bus, 1, 1, 0},
-        {0, 2, 2, 0, 35, 2, 2, bus, 1, 1, 0},
-        {0, 2, 2, 0, 35, 2, 2, bus, 1, 1, 0},
-        {0, 2, 2, 0, 35, 2, 2, bus, 1, 1, 0},
-        {0, 2, 2, 0, 35, 2, 2, bus, 1, 1, 0}
+        {0, 2, 2, 0, 35, 2, 2, res2, 1, 0, 0}
     }
 };
 
 int edge_buffer[Dags][Tasks][Tasks] = {
     {
-        { 0, 20, 20, 20, 0, 0, 20, 0, 0},
-        { 20, 0, 20, 0, 0, 20, 0, 20, 0},
-        { 20, 20, 0, 0, 20, 0, 0, 0, 20},
-        { 0, 0, 20, 0, 0, 0, 0, 0, 0},
-        { 20, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 20, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 20, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 0, 20, 0, 0, 0, 0, 0, 0},
-        { 0, 20, 0, 0, 0, 0, 0, 0, 0}
+        { 0, 20, 20},
+        { 20, 0, 20},
+        { 20, 20, 0}
     }
 };
 
 const int prod[Dags][Tasks][Tasks]= {
     {
-        { 0, 20, 20, 20, 0, 0, 20, 0, 0},
-        { 20, 0, 20, 0, 0, 20, 0, 20, 0},
-        { 20, 20, 0, 0, 20, 0, 0, 0, 20},
-        { 0, 0, 20, 0, 0, 0, 0, 0, 0},
-        { 20, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 20, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 20, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 0, 20, 0, 0, 0, 0, 0, 0},
-        { 0, 20, 0, 0, 0, 0, 0, 0, 0}
+        { 0, 20, 20},
+        { 20, 0, 20},
+        { 20, 20, 0}
     }
 };
 
 const int cons[Dags][Tasks][Tasks]= {
     {
-        { 0, 2, 2, 2, 0, 0, 2, 0, 0},
-        { 2, 0, 2, 0, 0, 2, 0, 2, 0},
-        { 2, 2, 0, 0, 2, 0, 0, 0, 2},
-        { 0, 0, 2, 0, 0, 0, 0, 0, 0},
-        { 2, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 2, 0, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 2, 0, 0, 0, 0, 0, 0, 0},
-        { 0, 0, 2, 0, 0, 0, 0, 0, 0},
-        { 0, 2, 0, 0, 0, 0, 0, 0, 0}
+        { 0, 20, 20},
+        { 20, 0, 20},
+        { 20, 20, 0}
     }
 };
 
@@ -511,277 +356,6 @@ debug_ready_task = ready_task</label>
 		<parameter>const d_id gid, const t_id tid</parameter>
 		<declaration>clock x;
 
-/*typedef int[0, Dags*Tasks-1] g_id;
-
-g_id to_gid(d_id d, t_id t) {
-    return d * Tasks + t;
-}*/
-
-time_t new_sporadic_period;
-
-bool best_resource_found;
-
-int debug_resource_found= -1;
-
-void completed() {
-  complete[gid][tid] = true;
-}
-
-time_t convertToTime(double x) {
-    time_t result = 0;
-
-    if (x &gt;= 0) {
-        while (x &gt;= result) {
-            result = result + 1;
-        }
-    } else {
-        while (x &lt;= result) {
-            result = result - 1;
-        }
-    }
-
-    return result;
-}
-
-void new_period() { //deprected
-
-  complete[gid][tid] = false;
-
- /* if (dag[gid].sporadic == true)
-  {
-      int i = 0;
-      // for (i = 0; i &lt; dag[0].
-// completed[]
-      new_sporadic_period = task[gid][tid].min_period + 1;// convertToTime(random(Sporadic_Interval) + 1);
-      task[gid][tid].max_period = task[gid][tid].min_period = new_sporadic_period;
-  }*/
-
-  task[gid][tid].curr_resource = -1;
-}
-
-int task_id[2] = {0,0};
-
-time_t initialOffset() { return task[gid][tid].initial_offset; }
-time_t minPeriod() { return task[gid][tid].min_period; }
-time_t maxPeriod() { return task[gid][tid].max_period; }
-time_t offset() { return task[gid][tid].offset; }
-time_t deadline() { return task[gid][tid].deadline; }
-time_t BCET() { return task[gid][tid].bcet; }
-time_t WCET() { return task[gid][tid].wcet; }
-time_t priotiry() { return task[gid][tid].pri; }
-r_id resource() { return task[gid][tid].curr_resource; }
-
-int findEdge(t_id pred, t_id succ) {
-    int i;
-
-    for (i = 0; i &lt; Tasks; i++) {
-        if (task[gid][i].type == 1) {
-            if (cons[gid][pred][i] &gt; 0 &amp;&amp; prod[gid][i][succ] &gt; 0) {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-
-void checkPredecessorsOfTask()
-{
-    int pred;
-
-    for (pred = 0; pred &lt; Tasks; pred++) {
-        if (cons[gid][pred][tid] &gt; 0) {
-            int pred_res = task[gid][pred].curr_resource;
-            int this_res = task[gid][tid].curr_resource;
-
-            if (pred_res != -1 &amp;&amp; this_res != -1 &amp;&amp; this_res != pred_res) {
-
-                int edge = findEdge(pred, tid);
-                if (edge &gt;= 0) {
-                    task[gid][edge].curr_resource = bus[0];
-                }
-            }
-        }
-    }
-}
-
-bool findBestProcessor()
-{
-    int best_len = BufferSize +1;
-    bool ret = false;
-    int i;
-
-    for (i = 0; i &lt; Procs-1; i++) {
-        r_id r = task[gid][tid].resources[i];
-
-        /*if (load[r] + task[gid][tid].wcet &gt; load_limit[r]) {
-            error[gid][tid] = true;
-        }*/
-
-        //if (load[r] + task[gid][tid].wcet &lt;= load_limit[r]) {
-       if (buffer[r].length &lt; best_len) {
-            best_len = buffer[r].length;
-            task[gid][tid].curr_resource = r;
-            debug_resource_found = r;
-            ret = true;
-        }
-       // }
-    }
-
-    return ret;
-}
-
-bool findBestResource() {
-
-    // task[gid][tid].curr_resource = task_id[tid];
-    // return true;
-
-    best_resource_found = findBestProcessor();
-    /**
-     * check if it makes sense to migrate the task to another processor, if so, consider the edge task
-     */
-    if (best_resource_found)
-    {
-        checkPredecessorsOfTask();
-    }
-    return best_resource_found;
-}
-
-int[0,1] isRunning() {
-  return (buffer[resource()].element[0] == tid? 1 : 0);
-/*
-  int i;
-  for (i = 0; i &lt; Procs-1; i++)
-  {
-    r_id r = task[gid][tid].resources[i];
-    if (buffer[r].length &gt; 0 &amp;&amp; buffer[r].element[0] == tid)
-    {
-      return 1;
-    }
-  }
-  return 0;
-*/
-}
-
-
-</declaration>
-		<location id="id13" x="280" y="-187">
-			<name x="296" y="-203">WaitingDepedency</name>
-			<label kind="invariant" x="297" y="-178">x'== 0</label>
-		</location>
-		<location id="id14" x="-258" y="310">
-			<name x="-274" y="278">Done</name>
-			<label kind="invariant" x="-282" y="326">x' == 0</label>
-		</location>
-		<location id="id15" x="280" y="311">
-			<committed/>
-		</location>
-		<location id="id16" x="-246" y="-297">
-			<committed/>
-		</location>
-		<location id="id17" x="-246" y="-467">
-			<name x="-254" y="-499">Initial</name>
-			<label kind="invariant" x="-222" y="-483">x' == 0 &amp;&amp;
-time[gid][tid] &lt;= initialOffset()</label>
-			<label kind="comments" x="-442" y="-476">x' ==0 clock paused</label>
-		</location>
-		<location id="id18" x="-258" y="118" color="#ff0000">
-			<name x="-274" y="86">Error</name>
-		</location>
-		<location id="id19" x="280" y="425">
-			<name x="296" y="417">PeriodDone</name>
-			<label kind="invariant" x="224" y="441">x' == 0 &amp;&amp;
-time[gid][tid] &lt;= maxPeriod()</label>
-		</location>
-		<location id="id20" x="280" y="119">
-			<name x="229" y="85">Ready</name>
-			<label kind="invariant" x="306" y="102">x'== isRunning() &amp;&amp;
-x &lt;= WCET()</label>
-		</location>
-		<location id="id21" x="280" y="-297">
-			<name x="238" y="-340">WaitingOffset</name>
-			<label kind="invariant" x="306" y="-314">x' == 0 &amp;&amp;
-time[gid][tid] &lt;= offset()</label>
-		</location>
-		<location id="id22" x="280" y="-42">
-			<name x="306" y="-59">SelectResource</name>
-			<label kind="invariant" x="306" y="-42">x'== 0</label>
-		</location>
-		<init ref="id17"/>
-		<transition id="id23">
-			<source ref="id13"/>
-			<target ref="id13"/>
-			<label kind="assignment" x="17" y="-187">findBestResource()</label>
-			<nail x="170" y="-93"/>
-			<nail x="170" y="-255"/>
-		</transition>
-		<transition id="id24">
-			<source ref="id22"/>
-			<target ref="id20"/>
-			<label kind="synchronisation" x="306" y="0">ready[resource()]!</label>
-			<label kind="assignment" x="306" y="25">ready_task = tid,
-consume(gid, tid)</label>
-		</transition>
-		<transition id="id25">
-			<source ref="id13"/>
-			<target ref="id22"/>
-			<label kind="guard" x="306" y="-144">can_fire(gid,tid) &amp;&amp;
-complete[gid][tid] == false &amp;&amp;
-task[gid][tid].curr_resource !=-1</label>
-		</transition>
-		<transition id="id26">
-			<source ref="id21"/>
-			<target ref="id13"/>
-			<label kind="guard" x="289" y="-255">time[gid][tid] == offset()</label>
-		</transition>
-		<transition id="id27">
-			<source ref="id15"/>
-			<target ref="id14"/>
-			<label kind="guard" x="-42" y="290">!Periodic</label>
-		</transition>
-		<transition id="id28">
-			<source ref="id15"/>
-			<target ref="id19"/>
-			<label kind="guard" x="289" y="360">Periodic</label>
-		</transition>
-		<transition id="id29">
-			<source ref="id17"/>
-			<target ref="id16"/>
-			<label kind="guard" x="-238" y="-391">time[gid][tid] == initialOffset()</label>
-		</transition>
-		<transition id="id30">
-			<source ref="id16"/>
-			<target ref="id21"/>
-			<label kind="assignment" x="-272" y="-272">time[gid][tid] = 0, x = 0,
-new_period()</label>
-		</transition>
-		<transition id="id31">
-			<source ref="id19"/>
-			<target ref="id16"/>
-			<label kind="guard" x="-102" y="403">time[gid][tid] &gt;= minPeriod()</label>
-			<nail x="-298" y="424"/>
-			<nail x="-298" y="-295"/>
-		</transition>
-		<transition id="id32">
-			<source ref="id20"/>
-			<target ref="id18"/>
-			<label kind="guard" x="-85" y="91">time[gid][tid] &gt; deadline()</label>
-			<label kind="assignment" x="-68" y="127">error[gid][tid] := true</label>
-		</transition>
-		<transition id="id33">
-			<source ref="id20"/>
-			<target ref="id15"/>
-			<label kind="guard" x="288" y="177">x &gt;= BCET()</label>
-			<label kind="synchronisation" x="288" y="201">finished[gid][tid]!</label>
-			<label kind="assignment" x="289" y="221">completed(),
-produce(gid, tid),
-counter[gid][tid]++</label>
-		</transition>
-	</template>
-	<template>
-		<name x="5" y="5">Task2</name>
-		<parameter>const d_id gid, const t_id tid</parameter>
-		<declaration>clock x;
-
 g_id to_gid(d_id d, t_id t) {
     return d * Tasks + t;
 }
@@ -856,157 +430,157 @@ int[0,1] isRunning() {
 
 
 </declaration>
-		<location id="id34" x="382" y="-187">
+		<location id="id13" x="382" y="-187">
 			<name x="408" y="-204">WaitingDepedency</name>
 			<label kind="invariant" x="408" y="-179">x'== 0</label>
 		</location>
-		<location id="id35" x="-258" y="463">
+		<location id="id14" x="-258" y="463">
 			<name x="-274" y="431">Done</name>
 			<label kind="invariant" x="-282" y="479">x' == 0</label>
 		</location>
-		<location id="id36" x="382" y="464">
+		<location id="id15" x="382" y="464">
 			<label kind="invariant" x="372" y="481">x'==0</label>
 			<committed/>
 		</location>
-		<location id="id37" x="-246" y="-297">
+		<location id="id16" x="-246" y="-297">
 			<committed/>
 		</location>
-		<location id="id38" x="-246" y="-467">
+		<location id="id17" x="-246" y="-467">
 			<name x="-254" y="-499">Initial</name>
 			<label kind="invariant" x="-222" y="-483">x' == 0 &amp;&amp;
 time[gid][tid] &lt;= initialOffset()</label>
 			<label kind="comments" x="-442" y="-476">x' ==0 clock paused</label>
 		</location>
-		<location id="id39" x="-258" y="271" color="#ff0000">
+		<location id="id18" x="-258" y="271" color="#ff0000">
 			<name x="-274" y="239">Error</name>
 		</location>
-		<location id="id40" x="382" y="578">
+		<location id="id19" x="382" y="578">
 			<name x="398" y="570">PeriodDone</name>
 			<label kind="invariant" x="326" y="594">x' == 0 &amp;&amp;
 time[gid][tid] &lt;= maxPeriod()</label>
 		</location>
-		<location id="id41" x="382" y="272">
+		<location id="id20" x="382" y="272">
 			<name x="408" y="229">Ready</name>
 			<label kind="invariant" x="408" y="255">x'== isRunning() &amp;&amp;
 x &lt;= WCET() &amp;&amp;
 time[gid][tid]'== isRunning()</label>
 		</location>
-		<location id="id42" x="382" y="-297">
+		<location id="id21" x="382" y="-297">
 			<name x="340" y="-340">WaitingOffset</name>
 			<label kind="invariant" x="408" y="-314">x' == 0 &amp;&amp;
 time[gid][tid] &lt;= offset()</label>
 		</location>
-		<location id="id43" x="25" y="-187">
+		<location id="id22" x="25" y="-187">
 			<name x="-34" y="-238">RequestResource</name>
 			<label kind="invariant" x="0" y="-221">x'== 0</label>
 		</location>
-		<location id="id44" x="25" y="-76">
+		<location id="id23" x="25" y="-76">
 			<name x="-195" y="-102">WaitingResourceAssignment</name>
 			<label kind="invariant" x="-51" y="-76">x'== 0</label>
 			<committed/>
 		</location>
-		<location id="id45" x="382" y="-76">
+		<location id="id24" x="382" y="-76">
 			<name x="408" y="-102">WaitingResourceAvailability</name>
 			<label kind="invariant" x="408" y="-76">x'== 0</label>
 			<committed/>
 		</location>
-		<location id="id46" x="382" y="102">
+		<location id="id25" x="382" y="102">
 			<committed/>
 		</location>
-		<location id="id47" x="25" y="68">
+		<location id="id26" x="25" y="68">
 			<committed/>
 		</location>
-		<init ref="id38"/>
-		<transition id="id48">
-			<source ref="id44"/>
-			<target ref="id45"/>
+		<init ref="id17"/>
+		<transition id="id27">
+			<source ref="id23"/>
+			<target ref="id24"/>
 			<label kind="guard" x="93" y="-161">task[gid][tid].curr_resource != -1</label>
 			<nail x="85" y="-136"/>
 			<nail x="340" y="-136"/>
 		</transition>
-		<transition id="id49">
-			<source ref="id47"/>
-			<target ref="id43"/>
+		<transition id="id28">
+			<source ref="id26"/>
+			<target ref="id22"/>
 			<nail x="-255" y="68"/>
 			<nail x="-255" y="-187"/>
 		</transition>
-		<transition id="id50">
-			<source ref="id44"/>
-			<target ref="id47"/>
+		<transition id="id29">
+			<source ref="id23"/>
+			<target ref="id26"/>
 			<label kind="synchronisation" x="34" y="-8">resource_not_found[gid][tid]?</label>
 		</transition>
-		<transition id="id51">
-			<source ref="id46"/>
-			<target ref="id41"/>
+		<transition id="id30">
+			<source ref="id25"/>
+			<target ref="id20"/>
 			<label kind="assignment" x="408" y="161">release_semaphore()</label>
 		</transition>
-		<transition id="id52">
-			<source ref="id45"/>
-			<target ref="id46"/>
+		<transition id="id31">
+			<source ref="id24"/>
+			<target ref="id25"/>
 			<label kind="synchronisation" x="408" y="-33">ready[resource()]!</label>
 			<label kind="assignment" x="408" y="-8">consume(gid, tid),
 time[gid][tid] = offset(),
 ready_task = to_gid(gid, tid)</label>
 		</transition>
-		<transition id="id53">
-			<source ref="id44"/>
-			<target ref="id45"/>
+		<transition id="id32">
+			<source ref="id23"/>
+			<target ref="id24"/>
 			<label kind="guard" x="119" y="-127">semaphore == false</label>
 			<label kind="synchronisation" x="93" y="-102">resource_assigned[gid][tid]?</label>
 			<label kind="assignment" x="127" y="-76">semaphore = true</label>
 		</transition>
-		<transition id="id54">
-			<source ref="id43"/>
-			<target ref="id44"/>
+		<transition id="id33">
+			<source ref="id22"/>
+			<target ref="id23"/>
 			<label kind="synchronisation" x="-195" y="-144">request_resource[gid][tid]!</label>
 		</transition>
-		<transition id="id55">
-			<source ref="id34"/>
-			<target ref="id43"/>
+		<transition id="id34">
+			<source ref="id13"/>
+			<target ref="id22"/>
 			<label kind="guard" x="127" y="-212">can_fire(gid,tid)</label>
 		</transition>
-		<transition id="id56">
-			<source ref="id42"/>
-			<target ref="id34"/>
+		<transition id="id35">
+			<source ref="id21"/>
+			<target ref="id13"/>
 			<label kind="guard" x="391" y="-255">time[gid][tid] == offset()</label>
 		</transition>
-		<transition id="id57">
-			<source ref="id36"/>
-			<target ref="id35"/>
+		<transition id="id36">
+			<source ref="id15"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-42" y="443">!Periodic</label>
 		</transition>
-		<transition id="id58">
-			<source ref="id36"/>
-			<target ref="id40"/>
+		<transition id="id37">
+			<source ref="id15"/>
+			<target ref="id19"/>
 			<label kind="guard" x="391" y="513">Periodic</label>
 		</transition>
-		<transition id="id59">
-			<source ref="id38"/>
-			<target ref="id37"/>
+		<transition id="id38">
+			<source ref="id17"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-212" y="-399">time[gid][tid] == initialOffset()</label>
 		</transition>
-		<transition id="id60">
-			<source ref="id37"/>
-			<target ref="id42"/>
+		<transition id="id39">
+			<source ref="id16"/>
+			<target ref="id21"/>
 			<label kind="assignment" x="-272" y="-272">time[gid][tid] = 0, x = 0,
 new_period()</label>
 		</transition>
-		<transition id="id61">
-			<source ref="id40"/>
-			<target ref="id37"/>
+		<transition id="id40">
+			<source ref="id19"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-102" y="556">time[gid][tid] &gt;= minPeriod()</label>
 			<nail x="-298" y="577"/>
 			<nail x="-298" y="-295"/>
 		</transition>
-		<transition id="id62">
-			<source ref="id41"/>
-			<target ref="id39"/>
+		<transition id="id41">
+			<source ref="id20"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-85" y="244">time[gid][tid] &gt; deadline()</label>
 			<label kind="assignment" x="-68" y="280">error[gid][tid] := true</label>
 		</transition>
-		<transition id="id63">
-			<source ref="id41"/>
-			<target ref="id36"/>
+		<transition id="id42">
+			<source ref="id20"/>
+			<target ref="id15"/>
 			<label kind="guard" x="390" y="330">x &gt;= BCET()</label>
 			<label kind="synchronisation" x="390" y="354">finished[gid][tid]!</label>
 			<label kind="assignment" x="391" y="374">completed(),
@@ -1191,7 +765,7 @@ int FindBestProcessor()
     int result = -1;
     int i;
 
-    for (i = 0; i &lt; Procs-1; i++)
+     for (i = 0; i &lt; Procs-1; i++)
     {
         r_id r = task[gid][tid].resources[i];
 
@@ -1209,138 +783,37 @@ int FindBestProcessor()
 
 void SearchIdleResouce()
 {
-    pair_t edge;
-    int pred;
-    bool to_break = false;
-
-    if (task[gid][tid].type == 0)
-    {
-        // find best resource for the task
-        resource_id = FindBestProcessor();
-        if (resource_id &gt;= 0)
-        {
-            status = 2;
-            // find predecessors in same resource
-            FindPredecessors(resource_id, true);
-            if (predecessors.size != 0)
-            {
-                status = 1;
-                UpdateTaskResourceInfo(gid, tid, resource_id);
-                return;
-            }
-            // find predecessors in different resources
-            FindPredecessors(resource_id, false);
-            if (predecessors.size != 0)
-            {   
-                status = 4;
-                FindEdgesFromPredecessors();
-                if(predecessors_egdes.size != 0)
-                {
-                    status = 5;
-                    UpdateTaskResourceInfo(gid, predecessors_egdes.list[0].second, bus[0]);
-                    return;
-                }
-            }
-            // there are no other tasks running on other resources
-            status = 6;
-            UpdateTaskResourceInfo(gid, tid, resource_id);
-        }
-            //FindEdgesFromPredecessors(predecessors);
-       // }
-        
-
-      /*  if (best_resource_found)
-        {
-            edge = FindPredecessorsOfTask(false);
-        }*/
-
-       // if (resource_id &gt;= 0)
-        //{
-             // if it is allocated to a different resource than its predecessor
-           // edge = FindPredecessors(true);
-        /*    if (edge.first != -1)
-            {
-                int edge_id = edge.second;
-                int pred_res = -1;
-
-                for (pred = 0; pred &lt; Tasks &amp;&amp; to_break == false; pred++)
-                {
-                    if (cons[gid][pred][tid] &gt; 0)
-                    {
-                        pred_res = task[gid][pred].curr_resource;
-                        to_break = true;
-                    }
-                }
-
-                if (pred_res != -1)
-                {
-                    int wait_time_same_res = buffer[pred_res].length * task[gid][tid].wcet; 
-                    int exec_time_same_res = wait_time_same_res + task[gid][tid].wcet;
-
-                    int exec_time_migrate = task[gid][tid].wcet 
-                                            + task[gid][edge_id].wcet 
-                                            + buffer[bus[0]].length * task[gid][edge_id].wcet;
-
-                    
-                    if (exec_time_same_res &gt; exec_time_migrate)
-                    {
-                        // execute edge first on the bus,
-                        // then this task on the already chosen resource
-                        UpdateTaskResourceInfo(gid, edge_id, bus[0]);
-                        // insert_at(1, tid, task[gid][tid].curr_resource);
-                    }
-                   /* else
-                    {
-                        UpdateTaskResourceInfo(pred_res);
-
-                    }*/
-              /*  }
-            }*/
-       // }
-
-    /*    if (best_resource_found == false)
-        {
-            best_resource_found = FindProcessorWithSoonestRelease();
-        }*/
-    }
-    else
-    {
-        // process bus
-        r_id r = bus[0];
-        if (/*buffer[r].length &lt; BufferSize &amp;&amp;*/
-            load[r] + task[gid][tid].wcet &lt;= load_limit[r]) 
-        {
-            //UpdateTaskResourceInfo(gid, tid, r);
-        }
-    } 
+    // find best resource for the task
+    resource_id = FindBestProcessor();
+    UpdateTaskResourceInfo(gid, tid, resource_id);
 }</declaration>
-		<location id="id64" x="-76" y="127">
+		<location id="id43" x="-76" y="127">
 			<name x="-127" y="110">Idle</name>
 		</location>
-		<location id="id65" x="348" y="127">
+		<location id="id44" x="348" y="127">
 			<name x="365" y="110">Decide</name>
 		</location>
-		<init ref="id64"/>
-		<transition id="id66">
-			<source ref="id65"/>
-			<target ref="id64"/>
+		<init ref="id43"/>
+		<transition id="id45">
+			<source ref="id44"/>
+			<target ref="id43"/>
 			<label kind="guard" x="17" y="221">task[gid][tid].curr_resource == -1</label>
 			<label kind="synchronisation" x="43" y="246">resource_not_found[gid][tid]!</label>
 			<nail x="314" y="204"/>
 			<nail x="-25" y="204"/>
 		</transition>
-		<transition id="id67">
-			<source ref="id64"/>
-			<target ref="id65"/>
+		<transition id="id46">
+			<source ref="id43"/>
+			<target ref="id44"/>
 			<label kind="guard" x="0" y="-42">task[gid][tid].curr_resource == -1</label>
 			<label kind="synchronisation" x="34" y="-17">request_resource[gid][tid]?</label>
 			<label kind="assignment" x="59" y="8">SearchIdleResouce()</label>
 			<nail x="-34" y="51"/>
 			<nail x="314" y="51"/>
 		</transition>
-		<transition id="id68">
-			<source ref="id65"/>
-			<target ref="id64"/>
+		<transition id="id47">
+			<source ref="id44"/>
+			<target ref="id43"/>
 			<label kind="guard" x="8" y="101">task[gid][tid].curr_resource != -1</label>
 			<label kind="synchronisation" x="34" y="127">resource_assigned[gid][tid]!</label>
 		</transition>
@@ -1360,44 +833,44 @@ void insert_task_in_buffer() {
   }
   insert_at(place,t,r);
 }</declaration>
-		<location id="id69" x="-176" y="-144">
+		<location id="id48" x="-176" y="-144">
 			<committed/>
 		</location>
-		<location id="id70" x="-176" y="-248">
+		<location id="id49" x="-176" y="-248">
 		</location>
-		<init ref="id70"/>
-		<transition id="id71">
-			<source ref="id69"/>
-			<target ref="id70"/>
+		<init ref="id49"/>
+		<transition id="id50">
+			<source ref="id48"/>
+			<target ref="id49"/>
 			<label kind="synchronisation" x="-306" y="-204">inserted!</label>
 			<nail x="-216" y="-144"/>
 			<nail x="-216" y="-248"/>
 		</transition>
-		<transition id="id72">
-			<source ref="id70"/>
-			<target ref="id69"/>
+		<transition id="id51">
+			<source ref="id49"/>
+			<target ref="id48"/>
 			<label kind="synchronisation" x="-168" y="-224">insert_task[FPS]?</label>
 			<label kind="assignment" x="-168" y="-192">insert_task_in_buffer()</label>
 		</transition>
 	</template>
 	<template>
 		<name>Policy_FIFO</name>
-		<location id="id73" x="-176" y="-128">
+		<location id="id52" x="-176" y="-128">
 			<committed/>
 		</location>
-		<location id="id74" x="-176" y="-248">
+		<location id="id53" x="-176" y="-248">
 		</location>
-		<init ref="id74"/>
-		<transition id="id75">
-			<source ref="id73"/>
-			<target ref="id74"/>
+		<init ref="id53"/>
+		<transition id="id54">
+			<source ref="id52"/>
+			<target ref="id53"/>
 			<label kind="synchronisation" x="-256" y="-128">inserted!</label>
 			<nail x="-224" y="-128"/>
 			<nail x="-224" y="-248"/>
 		</transition>
-		<transition id="id76">
-			<source ref="id74"/>
-			<target ref="id73"/>
+		<transition id="id55">
+			<source ref="id53"/>
+			<target ref="id52"/>
 			<label kind="synchronisation" x="-168" y="-232">insert_task[FIFO]?</label>
 			<label kind="assignment" x="-168" y="-200">insert_at(buffer[param.resource].length,
 	param.task,
@@ -1418,26 +891,26 @@ void readParameters() {
 void resetVars() {
   place = tid = rid = 0;
 }</declaration>
-		<location id="id77" x="-178" y="-25">
+		<location id="id56" x="-178" y="-25">
 			<committed/>
 		</location>
-		<location id="id78" x="-176" y="-264">
+		<location id="id57" x="-176" y="-264">
 			<committed/>
 		</location>
-		<location id="id79" x="-178" y="-484">
+		<location id="id58" x="-178" y="-484">
 		</location>
-		<init ref="id79"/>
-		<transition id="id80">
-			<source ref="id77"/>
-			<target ref="id79"/>
+		<init ref="id58"/>
+		<transition id="id59">
+			<source ref="id56"/>
+			<target ref="id58"/>
 			<label kind="synchronisation" x="-331" y="-331">inserted!</label>
 			<label kind="assignment" x="-331" y="-357">resetVars()</label>
 			<nail x="-226" y="-25"/>
 			<nail x="-226" y="-484"/>
 		</transition>
-		<transition id="id81">
-			<source ref="id78"/>
-			<target ref="id78"/>
+		<transition id="id60">
+			<source ref="id57"/>
+			<target ref="id57"/>
 			<label kind="guard" x="-128" y="-304">place &lt; buffer[rid].length &amp;&amp;
 time[0][tid]-task[0][tid].deadline &lt;=
 time[0][buffer[rid].element[place]] - task[0][buffer[rid].element[place]].deadline</label>
@@ -1445,17 +918,17 @@ time[0][buffer[rid].element[place]] - task[0][buffer[rid].element[place]].deadli
 			<nail x="-136" y="-280"/>
 			<nail x="-136" y="-248"/>
 		</transition>
-		<transition id="id82">
-			<source ref="id78"/>
-			<target ref="id77"/>
+		<transition id="id61">
+			<source ref="id57"/>
+			<target ref="id56"/>
 			<label kind="guard" x="-170" y="-178">place == buffer[rid].length ||
 time[0][tid]-task[0][tid].deadline &gt;
 time[0][buffer[rid].element[place]] - task[0][buffer[rid].element[place]].deadline</label>
 			<label kind="assignment" x="-170" y="-122">insert_at(place,tid,rid)</label>
 		</transition>
-		<transition id="id83">
-			<source ref="id79"/>
-			<target ref="id78"/>
+		<transition id="id62">
+			<source ref="id58"/>
+			<target ref="id57"/>
 			<label kind="synchronisation" x="-161" y="-415">insert_task[EDF]?</label>
 			<label kind="assignment" x="-161" y="-391">readParameters(),
 place = (preempt ? 0 : 1)</label>
@@ -1470,11 +943,27 @@ P1  = Resource(1, false,FPS);
 // P2  = Resource(2, false,FPS);
 Bus = Resource(2, false,FIFO);
 
-system Task2, P0, P1, Bus, Scheduler, Policy_FPS, Policy_FIFO;</system>
+system Task, P0, P1, Bus, Scheduler, Policy_FPS, Policy_FIFO;</system>
 	<queries>
+		<option key="--diagnostic" value="0"/>
 		<query>
-			<formula>A[] forall (i : t_id) not Task(i).Error
+			<formula>A[] forall (i : d_id) forall (j : t_id) not Task(i, j).Error
 			</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; forall (i : d_id) forall (j : t_id) Task(i, j).Error
+</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment>Checks for the existence of deadlocks</comment>
+			<result outcome="maybe_false" type="quality" timestamp="2025-10-12 12:49:50 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] forall(i: r_id) load[i] &lt;= load_limit[i]</formula>
 			<comment/>
 		</query>
 	</queries>
