@@ -17,7 +17,7 @@ Goal: Development and validation of an online scheduling algorithm for tasks mod
 
 1. [TESTS:ON-GOING] Implementation of the first version of the scheduling algorithm for resource selection;
 
-1. [] Tests with real cases in term of the number of tasks and processors (The license limits the number of template instances I want to run.); 
+1. [TESTS:ON-GOING] Tests with real cases in term of the number of tasks and processors (The license limits the number of template instances I want to run.); 
 
 1. [] Support for multiple instances of the same task;
 
