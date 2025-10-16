@@ -7,27 +7,27 @@ Goal: Development and validation of an online scheduling algorithm for tasks mod
 
 **Milestones:**
 
-1. Implementation and validation of direct transformation from SDF to TA in UPPAAL;
+1. [DONE] Implementation and validation of direct transformation from SDF to TA in UPPAAL;
 
-1. Implementation of CPU capacity verification before task allocation;
+1. [DONE] Implementation of CPU capacity verification before task allocation;
 
-1. Support for multiple SDF graphs and model scalability improvements;
+1. [DONE] Support for multiple SDF graphs and model scalability improvements;
 
-1. Integration with the UPPAAL Scheduler Framework, adapted to support SDF with arbitrary deadlines;
+1. [DONE] Integration with the UPPAAL Scheduler Framework, adapted to support SDF with arbitrary deadlines;
 
-1. Implementation of the first version of the scheduling algorithm for resource selection;
+1. [TESTS:ON-GOING] Implementation of the first version of the scheduling algorithm for resource selection;
 
-1. Tests with real cases in term of the number of tasks and processors;
+1. [] Tests with real cases in term of the number of tasks and processors (The license limits the number of template instances I want to run.); 
 
-1. Modeling communication between tasks distributed across different processors;
+1. [] Support for multiple instances of the same task;
 
-1. Guarantee the preservation of the temporal characteristics of the successor task;
+1. [] Modeling communication between tasks distributed across different processors;
 
-1. Support for different Worst-Case Execution Times (WCETs) per processor type;
+1. [] Guarantee the preservation of the temporal characteristics of the successor task;
 
-1. Support for multiple instances of the same task;
+1. [] Support for different Worst-Case Execution Times (WCETs) per processor type;
 
-1. Support for sporadic tasks;
+1. [] Support for sporadic tasks;
 
 **Validation:**
 At each milestone, the following conditions are validated:
